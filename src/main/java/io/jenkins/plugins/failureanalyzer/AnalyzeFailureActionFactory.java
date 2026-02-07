@@ -19,6 +19,6 @@ public class AnalyzeFailureActionFactory extends TransientActionFactory<Run> {
     @NonNull
     @Override
     public Collection<? extends Action> createFor(@NonNull Run run) {
-        return Collections.singleton(new AnalyzeFailureAction());
+        return Collections.singleton(new AnalyzeFailureAction(run));
     }
 }

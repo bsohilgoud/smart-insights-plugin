@@ -1,7 +1,6 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
     <l:layout title="Failure Analysis - ${it.run.fullDisplayName}">
-        <st:include page="sidepanel.jelly" it="${it.run}" />
         <l:main-panel>
             <h1>Failure Analysis Result</h1>
 
@@ -29,6 +28,9 @@
                     </tr>
                 </j:if>
             </table>
+            <h2>Result: </h2>
+            <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result}</pre>
+
 
             <j:if test="${result.hasFailedStage()}">
                 <h2>Failed Stage Log</h2>

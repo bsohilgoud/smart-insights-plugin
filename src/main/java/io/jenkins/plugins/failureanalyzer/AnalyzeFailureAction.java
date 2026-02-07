@@ -1,7 +1,5 @@
 package io.jenkins.plugins.failureanalyzer;
 
-import hudson.model.Action;
-import hudson.model.Result;
 import hudson.model.Run;
 import jenkins.model.RunAction2;
 import org.kohsuke.stapler.StaplerRequest;
@@ -13,6 +11,10 @@ import java.io.IOException;
 public class AnalyzeFailureAction implements RunAction2 {
     
     private transient Run<?, ?> run;
+
+    public AnalyzeFailureAction(Run run) {
+        this.run = run;
+    }
     
     @Override
     public void onAttached(Run<?, ?> run) {
@@ -26,10 +28,6 @@ public class AnalyzeFailureAction implements RunAction2 {
 
     @Override
     public String getIconFileName() {
-        // Only show on failed builds
-        if (run == null) {
-            return null;
-        }
         return "symbol-search";
     }
 
@@ -47,13 +45,29 @@ public class AnalyzeFailureAction implements RunAction2 {
         return run;
     }
 
+    public void setRun(Run<?, ?> run) {
+        this.run = run;
+    }
+
     @POST
     public void doAnalyze(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         run.checkPermission(Run.UPDATE);
         
         AnalysisResult result = StageLogExtractor.extractFailureData(run);
+        System.out.println("result = " + result);
+        System.out.println("result.getJobName() = " + result.getJobName());
         
         req.setAttribute("result", result);
         req.getView(this, "result.jelly").forward(req, rsp);
+    }
+
+
+    public void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        run.checkPermission(Run.UPDATE);
+
+        AnalysisResult result = StageLogExtractor.extractFailureData(run);
+
+        req.setAttribute("result", result);
+        req.getView(this, "index.jelly").forward(req, rsp);
     }
 }

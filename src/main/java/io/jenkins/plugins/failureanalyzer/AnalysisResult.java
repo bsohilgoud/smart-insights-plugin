@@ -63,4 +63,16 @@ public class AnalysisResult implements Serializable {
     public boolean hasFailedStage() {
         return failedStageName != null;
     }
+
+    @Override
+    public String toString() {
+        return "AnalysisResult{" +
+                "jobName='" + jobName + '\'' +
+                ", buildNumber=" + buildNumber +
+                ", failedStageName='" + failedStageName + '\'' +
+                ", stageLog='" + stageLog + '\'' +
+                ", fullLog='" + fullLog + '\'' +
+                ", errorMessage='" + errorMessage + '\'' +
+                '}';
+    }
 }

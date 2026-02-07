@@ -41,16 +41,33 @@ public class StageLogExtractor {
         List<FlowNode> nodes = new ArrayList<>();
         execution.getCurrentHeads().forEach(node -> collectNodes(node, nodes));
 
+        // First find the error node
+        FlowNode errorNode = null;
         for (FlowNode node : nodes) {
-            StageAction stageAction = node.getPersistentAction(StageAction.class);
             ErrorAction errorAction = node.getError();
-
-            if (stageAction != null && errorAction != null) {
-                result.setFailedStageName(stageAction.getStageName());
-                result.setStageLog(extractNodeLog(node, run));
+            if (errorAction != null) {
+                errorNode = node;
                 result.setErrorMessage(errorAction.getError().getMessage());
                 break;
             }
+        }
+
+        if (errorNode == null) {
+            return;
+        }
+
+        // Now find the enclosing stage
+        FlowNode current = errorNode;
+        while (current != null) {
+            StageAction stageAction = current.getPersistentAction(StageAction.class);
+            if (stageAction != null) {
+                result.setFailedStageName(stageAction.getStageName());
+                result.setStageLog(extractNodeLog(current, run));
+                break;
+            }
+            // Move up to parent nodes
+            List<FlowNode> parents = current.getParents();
+            current = parents.isEmpty() ? null : parents.get(0);
         }
     }
 
@@ -69,7 +86,7 @@ public class StageLogExtractor {
         if (logAction != null) {
             try {
                 StringWriter writer = new StringWriter();
-                logAction.getLogText().writeLogTo(0, writer);
+                long l = logAction.getLogText().writeLogTo(0, writer);
                 return writer.toString();
             } catch (IOException e) {
                 return "Error extracting stage log: " + e.getMessage();
@@ -77,7 +94,6 @@ public class StageLogExtractor {
         }
         return "No log available for this stage";
     }
-
 
     private static String getFullLog(Run<?, ?> run) {
         try (BufferedReader reader = new BufferedReader(
