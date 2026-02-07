@@ -1,0 +1,46 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+    <l:layout title="Failure Analysis - ${it.run.fullDisplayName}">
+        <st:include page="sidepanel.jelly" it="${it.run}" />
+        <l:main-panel>
+            <h1>Failure Analysis Result</h1>
+
+            <j:set var="result" value="${request.getAttribute('result')}" />
+
+            <table class="pane bigtable" style="margin-top: 20px;">
+                <tr>
+                    <td class="pane-header">Job Name</td>
+                    <td class="pane">${result.jobName}</td>
+                </tr>
+                <tr>
+                    <td class="pane-header">Build Number</td>
+                    <td class="pane">${result.buildNumber}</td>
+                </tr>
+                <j:if test="${result.hasFailedStage()}">
+                    <tr>
+                        <td class="pane-header">Failed Stage</td>
+                        <td class="pane"><strong>${result.failedStageName}</strong></td>
+                    </tr>
+                </j:if>
+                <j:if test="${result.errorMessage != null}">
+                    <tr>
+                        <td class="pane-header">Error</td>
+                        <td class="pane" style="color: red;">${result.errorMessage}</td>
+                    </tr>
+                </j:if>
+            </table>
+
+            <j:if test="${result.hasFailedStage()}">
+                <h2>Failed Stage Log</h2>
+                <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result.stageLog}</pre>
+            </j:if>
+
+            <h2>Full Build Log</h2>
+            <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result.fullLog}</pre>
+
+            <p style="margin-top: 20px;">
+                <a href="${rootURL}/${it.run.url}">← Back to Build</a>
+            </p>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

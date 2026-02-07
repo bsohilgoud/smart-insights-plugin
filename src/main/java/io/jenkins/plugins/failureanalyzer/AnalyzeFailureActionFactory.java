@@ -4,7 +4,7 @@ import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Run;
 import jenkins.model.TransientActionFactory;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -16,9 +16,9 @@ public class AnalyzeFailureActionFactory extends TransientActionFactory<Run> {
         return Run.class;
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public Collection<? extends Action> createFor(@Nonnull Run run) {
+    public Collection<? extends Action> createFor(@NonNull Run run) {
         return Collections.singleton(new AnalyzeFailureAction());
     }
 }

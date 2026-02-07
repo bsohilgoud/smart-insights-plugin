@@ -11,6 +11,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,23 +38,19 @@ public class StageLogExtractor {
             return;
         }
 
-        try {
-            List<FlowNode> nodes = new ArrayList<>();
-            execution.getCurrentHeads().forEach(node -> collectNodes(node, nodes));
+        List<FlowNode> nodes = new ArrayList<>();
+        execution.getCurrentHeads().forEach(node -> collectNodes(node, nodes));
 
-            for (FlowNode node : nodes) {
-                StageAction stageAction = node.getPersistentAction(StageAction.class);
-                ErrorAction errorAction = node.getError();
+        for (FlowNode node : nodes) {
+            StageAction stageAction = node.getPersistentAction(StageAction.class);
+            ErrorAction errorAction = node.getError();
 
-                if (stageAction != null && errorAction != null) {
-                    result.setFailedStageName(stageAction.getStageName());
-                    result.setStageLog(extractNodeLog(node, run));
-                    result.setErrorMessage(errorAction.getError().getMessage());
-                    break;
-                }
+            if (stageAction != null && errorAction != null) {
+                result.setFailedStageName(stageAction.getStageName());
+                result.setStageLog(extractNodeLog(node, run));
+                result.setErrorMessage(errorAction.getError().getMessage());
+                break;
             }
-        } catch (IOException e) {
-            result.setErrorMessage("Failed to extract pipeline data: " + e.getMessage());
         }
     }
 
@@ -71,13 +68,16 @@ public class StageLogExtractor {
         LogAction logAction = node.getAction(LogAction.class);
         if (logAction != null) {
             try {
-                return logAction.getLogText().writeLogTo(0, new StringBuilder()).toString();
+                StringWriter writer = new StringWriter();
+                logAction.getLogText().writeLogTo(0, writer);
+                return writer.toString();
             } catch (IOException e) {
                 return "Error extracting stage log: " + e.getMessage();
             }
         }
         return "No log available for this stage";
     }
+
 
     private static String getFullLog(Run<?, ?> run) {
         try (BufferedReader reader = new BufferedReader(
