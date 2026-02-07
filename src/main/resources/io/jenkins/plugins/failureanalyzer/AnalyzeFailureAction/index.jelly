@@ -1,6 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
     <l:layout title="Failure Analysis - ${it.run.fullDisplayName}">
+        <st:include page="sidepanel.jelly" it="${it.run}" />
         <l:main-panel>
             <h1>Failure Analysis Result</h1>
 
@@ -18,23 +19,28 @@
                 <j:if test="${result.hasFailedStage()}">
                     <tr>
                         <td class="pane-header">Failed Stage</td>
-                        <td class="pane"><strong>${result.failedStageName}</strong></td>
+                        <td class="pane"><strong style="color: red;">${result.failedStageName}</strong></td>
                     </tr>
                 </j:if>
                 <j:if test="${result.errorMessage != null}">
                     <tr>
-                        <td class="pane-header">Error</td>
+                        <td class="pane-header">Error Message</td>
                         <td class="pane" style="color: red;">${result.errorMessage}</td>
                     </tr>
                 </j:if>
             </table>
-            <h2>Result: </h2>
-            <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result}</pre>
 
-
-            <j:if test="${result.hasFailedStage()}">
-                <h2>Failed Stage Log</h2>
-                <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result.stageLog}</pre>
+            <j:if test="${!result.stages.isEmpty()}">
+                <h2>Stage Logs</h2>
+                <j:forEach var="stage" items="${result.stages}">
+                    <h3 style="margin-top: 20px;">
+                        ${stage.stageName}
+                        <j:if test="${stage.failed}">
+                            <span style="color: red; font-weight: bold;"> [FAILED]</span>
+                        </j:if>
+                    </h3>
+                    <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 300px; overflow-y: auto;">${stage.stageLog}</pre>
+                </j:forEach>
             </j:if>
 
             <h2>Full Build Log</h2>
