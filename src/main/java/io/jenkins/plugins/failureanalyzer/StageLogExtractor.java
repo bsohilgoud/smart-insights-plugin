@@ -18,8 +18,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class StageLogExtractor {
+
+    private static final Logger LOGGER = Logger.getLogger(StageLogExtractor.class.getName());
 
     public static AnalysisResult extractFailureData(Run<?, ?> run) {
         AnalysisResult result = new AnalysisResult();
@@ -36,7 +40,7 @@ public class StageLogExtractor {
     }
 
     private static void extractPipelineData(WorkflowRun run, AnalysisResult result) {
-        System.out.println("[DEBUG] Starting pipeline data extraction using BlockStartNode strategy");
+        LOGGER.info("Starting pipeline data extraction using BlockStartNode strategy");
 
         try {
             // Collect ALL nodes (walker returns newest-first)
@@ -45,7 +49,7 @@ public class StageLogExtractor {
             for (FlowNode n : walker) {
                 allNodes.add(n);
             }
-            System.out.println("[DEBUG] Total nodes: " + allNodes.size());
+            LOGGER.info("Total nodes: " + allNodes.size());
 
             // Find ALL error nodes
             List<FlowNode> errorNodes = new ArrayList<>();
@@ -55,12 +59,12 @@ public class StageLogExtractor {
                     String errMsg = node.getError().getError() != null ?
                             node.getError().getError().getMessage() :
                             "Unknown error";
-                    System.out.println("[DEBUG] Found error at node " + node.getId() + ": " + errMsg);
+                    LOGGER.info("Found error at node " + node.getId() + ": " + errMsg);
                 }
             }
 
             boolean wasAborted = (run.getResult() == Result.ABORTED);
-            System.out.println("[DEBUG] Found " + errorNodes.size() + " error nodes, wasAborted: " + wasAborted);
+            LOGGER.info("Found " + errorNodes.size() + " error nodes, wasAborted: " + wasAborted);
 
             // Find all BlockStartNode candidates
             List<BlockStartNode> blockStartNodes = new ArrayList<>();
@@ -69,7 +73,7 @@ public class StageLogExtractor {
                     blockStartNodes.add((BlockStartNode) node);
                 }
             }
-            System.out.println("[DEBUG] Found " + blockStartNodes.size() + " BlockStartNodes");
+            LOGGER.info("Found " + blockStartNodes.size() + " BlockStartNodes");
 
             // Process each potential stage
             List<StageData> stages = new ArrayList<>();
@@ -78,7 +82,7 @@ public class StageLogExtractor {
 
                 // Filter out non-user stages
                 if (stageName != null && !isFilteredStage(stageName)) {
-                    System.out.println("[DEBUG] Processing stage: " + stageName);
+                    LOGGER.fine("Processing stage: " + stageName);
 
                     // Find corresponding end node
                     BlockEndNode endNode = findEndNode(startNode, allNodes);
@@ -94,7 +98,7 @@ public class StageLogExtractor {
                                 errorMsg = errNode.getError().getError() != null ?
                                         errNode.getError().getError().getMessage() :
                                         "Unknown error";
-                                System.out.println("[DEBUG] Stage '" + stageName + "' marked as " + status);
+                                LOGGER.info("Stage '" + stageName + "' marked as " + status);
                                 break;
                             }
                         }
@@ -102,7 +106,7 @@ public class StageLogExtractor {
 
                     // Extract logs
                     String log = getStageLog(startNode, endNode, allNodes);
-                    System.out.println("[DEBUG] Extracted " + log.length() + " chars for stage: " + stageName);
+                    LOGGER.fine("Extracted " + log.length() + " chars for stage: " + stageName);
 
                     stages.add(new StageData(stageName, status, log, errorMsg, allNodes.indexOf(startNode)));
                 }
@@ -112,7 +116,7 @@ public class StageLogExtractor {
             Collections.reverse(stages);
             Collections.sort(stages, (a, b) -> Integer.compare(b.nodeIndex, a.nodeIndex));
 
-            System.out.println("[DEBUG] Total stages extracted: " + stages.size());
+            LOGGER.info("Total stages extracted: " + stages.size());
 
             // Add to result
             for (StageData stage : stages) {
@@ -126,8 +130,7 @@ public class StageLogExtractor {
             }
 
         } catch (Exception e) {
-            System.out.println("[DEBUG] Error extracting pipeline data: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error extracting pipeline data", e);
             result.setErrorMessage("Error extracting pipeline data: " + e.getMessage());
         }
     }
@@ -242,7 +245,7 @@ public class StageLogExtractor {
                         sb.append(part);
                     }
                 } catch (Exception e) {
-                    System.out.println("[DEBUG] Error reading log for node " + n.getId() + ": " + e.getMessage());
+                    LOGGER.log(Level.WARNING, "Error reading log for node " + n.getId(), e);
                 }
             }
         }
@@ -257,10 +260,10 @@ public class StageLogExtractor {
             while ((line = reader.readLine()) != null) {
                 log.append(line).append("\n");
             }
-            System.out.println("[DEBUG] Full log extracted: " + log.length() + " chars");
+            LOGGER.info("Full log extracted: " + log.length() + " chars");
             return log.toString();
         } catch (IOException e) {
-            System.out.println("[DEBUG] Error reading full log: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error reading full log", e);
             return "Error reading full log: " + e.getMessage();
         }
     }

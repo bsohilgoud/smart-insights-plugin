@@ -16,7 +16,7 @@
     <version>1.0</version>
     <packaging>hpi</packaging>
 
-    <name>Failure Analyzer Plugin</name>
+    <name>Smart Failure Analyzer Plugin</name>
 
     <properties>
         <jenkins.version>2.504.3</jenkins.version>
@@ -59,6 +59,26 @@
             <artifactId>workflow-cps</artifactId>
             <version>4218.vff679a_5c0f3a_</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- HTTP client for backend communication -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
+        <!-- JSON processing -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
         </dependency>
 <!--        <dependency>-->
 <!--            <groupId>org.jenkins-ci.plugins.workflow</groupId>-->
@@ -103,14 +123,6 @@
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.jenkins-ci.tools</groupId>-->
-<!--                <artifactId>maven-hpi-plugin</artifactId>-->
-<!--                &lt;!&ndash; your version, e.g. <version>3.50</version> or managed by parent &ndash;&gt;-->
-<!--                <configuration>-->
-<!--                    <port>9090</port>  &lt;!&ndash; This sets the default HTTP port for hpi:run &ndash;&gt;-->
-<!--                </configuration>-->
-<!--            </plugin>-->
         </plugins>
 
     </build>
