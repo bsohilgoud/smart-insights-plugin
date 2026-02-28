@@ -53,27 +53,42 @@ public class LLMAnalyzer {
                     .build();
 
             StringBuilder promptBuilder = new StringBuilder();
-            promptBuilder.append("Analyze this Jenkins pipeline failure. Provide a concise root cause analysis and a suggested fix in a well-formatted manner.\n\n");
-            promptBuilder.append("Job Name: ").append(result.getJobName()).append("\n");
-            promptBuilder.append("Build Number: ").append(result.getBuildNumber()).append("\n");
+            promptBuilder.append("You are a CI/CD failure analysis expert for Jenkins pipelines.\n\n");
+            promptBuilder.append("**Job:** ").append(result.getJobName()).append("\n");
+            promptBuilder.append("**Build:** #").append(result.getBuildNumber()).append("\n");
             
             if (result.getFailedStageName() != null) {
-                promptBuilder.append("Failed Stage: ").append(result.getFailedStageName()).append("\n");
+                promptBuilder.append("**Failed Stage:** ").append(result.getFailedStageName()).append("\n");
             }
             if (result.getErrorMessage() != null) {
-                promptBuilder.append("Error Message: ").append(result.getErrorMessage()).append("\n");
+                promptBuilder.append("**Error Message:** ").append(result.getErrorMessage()).append("\n");
             }
             
-            promptBuilder.append("\nPipeline stages execution order (Passed stages are summarized):\n");
+            promptBuilder.append("\n**Pipeline Execution Flow:**\n");
             for (AnalysisResult.StageInfo stage : result.getStages()) {
                 promptBuilder.append("- ").append(stage.getStageName()).append(": ")
                         .append(stage.isFailed() ? "FAILED" : "PASSED").append("\n");
+            }
+
+            promptBuilder.append("\n**Stage Details (Logs):**\n");
+            for (AnalysisResult.StageInfo stage : result.getStages()) {
                 if (stage.isFailed() && stage.getStageLog() != null && !stage.getStageLog().isEmpty()) {
-                    promptBuilder.append("\n--- FAILED STAGE LOGS ---\n");
-                    promptBuilder.append(stage.getStageLog());
-                    promptBuilder.append("\n-------------------------\n");
+                    promptBuilder.append(stage.getStageLog()).append("\n");
                 }
             }
+
+            promptBuilder.append("\nAnalyze the failure and respond in valid JSON matching exactly this schema without any markdown formatting wrappers:\n");
+            promptBuilder.append("{\n");
+            promptBuilder.append("  \"summary\": \"Brief 1-sentence summary of what failed\",\n");
+            promptBuilder.append("  \"root_cause\": \"Detailed root cause analysis considering the execution flow\",\n");
+            promptBuilder.append("  \"suggested_fixes\": [\"Actionable fix 1\", \"Actionable fix 2\"],\n");
+            promptBuilder.append("  \"flaky\": true\n");
+            promptBuilder.append("}\n\n");
+            
+            promptBuilder.append("Focus on:\n");
+            promptBuilder.append("1. Whether the failure is isolated to the failed stage or cascaded from earlier stages\n");
+            promptBuilder.append("2. Patterns in the execution flow that contributed to the failure\n");
+            promptBuilder.append("3. Specific actionable fixes (not generic advice)\n");
 
             LOGGER.info("Sending request to LLM using LangChain4j...");
             return model.generate(promptBuilder.toString());

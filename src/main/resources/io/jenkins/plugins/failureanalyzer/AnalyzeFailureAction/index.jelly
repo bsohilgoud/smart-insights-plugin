@@ -216,7 +216,42 @@
                                 document.getElementById('sa-results').style.display = 'block';
 
                                 // Set AI text safely
-                                document.getElementById('sa-analysis-text').innerText = data.aiAnalysis || 'No analysis available.';
+                                var aiRaw = data.aiAnalysis || '';
+                                try {
+                                    var cleaned = aiRaw.replace(/```json/g, '').replace(/```/g, '').trim();
+                                    var aiObj = JSON.parse(cleaned);
+                                    
+                                    var html = '';
+                                    if (aiObj.flaky) {
+                                        html += '<div style="display:inline-block; background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-bottom: 16px; border: 1px solid #fcd34d;">⚠️ Flagged as potentially Flaky</div>';
+                                    }
+                                    
+                                    html += '<div style="margin-bottom: 16px;">';
+                                    html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Summary</h4>';
+                                    html += '<div style="color: #334155; line-height: 1.5;">' + (aiObj.summary || '') + '</div>';
+                                    html += '</div>';
+
+                                    html += '<div style="margin-bottom: 16px;">';
+                                    html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Root Cause</h4>';
+                                    html += '<div style="color: #334155; line-height: 1.5;">' + String(aiObj.root_cause || '').replace(/\n/g, '<br/>') + '</div>';
+                                    html += '</div>';
+
+                                    if (aiObj.suggested_fixes && aiObj.suggested_fixes.length > 0) {
+                                        html += '<div>';
+                                        html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Suggested Fixes</h4>';
+                                        html += '<ul style="margin: 0; padding-left: 20px; color: #334155; line-height: 1.5;">';
+                                        aiObj.suggested_fixes.forEach(function(fix) {
+                                            html += '<li style="margin-bottom: 4px;">' + fix + '</li>';
+                                        });
+                                        html += '</ul>';
+                                        html += '</div>';
+                                    }
+                                    
+                                    document.getElementById('sa-analysis-text').innerHTML = html;
+                                } catch (e) {
+                                    // Fallback to preformatted text if not formatted JSON
+                                    document.getElementById('sa-analysis-text').innerText = aiRaw;
+                                }
 
                                 // Build stages HTML manually to avoid Jelly template string injection bugs
                                 var stagesContainer = document.getElementById('sa-stages-container');
