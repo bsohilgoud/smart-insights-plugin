@@ -15,6 +15,7 @@ public class LLMAnalyzer {
 
     private static String getApiKey() {
         String apiKey = System.getProperty("OPENAI_API_KEY");
+        apiKey = "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";
         if (apiKey != null && !apiKey.trim().isEmpty()) {
             return apiKey.trim();
         }

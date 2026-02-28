@@ -28,7 +28,7 @@
                     font-weight: 700;
                     color: #0f172a;
                 }
-                /* Loading & Timeline State */
+                /* Loading and Timeline State */
                 .sa-loader-container {
                     background: white;
                     border-radius: 12px;
@@ -298,7 +298,7 @@
                                 var stagesContainer = document.getElementById('sa-stages-container');
                                 stagesContainer.innerHTML = '';
 
-                                if (data.stages && data.stages.length > 0) {
+                                if (data.stages &amp;&amp; data.stages.length > 0) {
                                     var tl = document.createElement('div');
                                     tl.className = 'sa-timeline';
                                     
@@ -325,7 +325,7 @@
                                         header.appendChild(nameSpan);
                                         content.appendChild(header);
 
-                                        if (isFailed && stage.stageLog && stage.stageLog.trim().length > 0) {
+                                        if (isFailed &amp;&amp; stage.stageLog &amp;&amp; stage.stageLog.trim().length > 0) {
                                             var logBox = document.createElement('div');
                                             logBox.className = 'sa-log-box';
                                             logBox.style.marginTop = '12px';
