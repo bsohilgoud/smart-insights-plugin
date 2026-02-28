@@ -20,6 +20,7 @@ public class AnalysisResult implements Serializable {
     private String failedStageName;
     private String fullLog;
     private String errorMessage;
+    private String aiAnalysis;
     private List<StageInfo> stages = new ArrayList<>();
     private long timestamp = System.currentTimeMillis();
 

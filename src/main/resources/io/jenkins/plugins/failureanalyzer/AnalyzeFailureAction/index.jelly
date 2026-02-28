@@ -1,54 +1,278 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
-    <l:layout title="Failure Analysis - ${it.run.fullDisplayName}">
+    <l:layout title="Smart Analysis - ${it.run.fullDisplayName}">
         <st:include page="sidepanel.jelly" it="${it.run}" />
         <l:main-panel>
-            <h1>Failure Analysis Result</h1>
 
-            <j:set var="result" value="${request.getAttribute('result')}" />
+            <style>
+                .sa-wrap {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    color: #1f2933;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 1200px;
+                }
+                .sa-hero {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    border-bottom: 2px solid #e2e8f0;
+                    padding-bottom: 16px;
+                    margin-bottom: 24px;
+                }
+                .sa-title {
+                    margin: 0;
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: #0f172a;
+                }
+                /* Loading State */
+                .sa-loader-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 60px 20px;
+                    background: white;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                    text-align: center;
+                }
+                .sa-spinner {
+                    width: 48px;
+                    height: 48px;
+                    border: 4px solid #e2e8f0;
+                    border-top-color: #4f46e5;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 24px;
+                }
+                @keyframes spin { 
+                    to { transform: rotate(360deg); } 
+                }
+                .sa-steps {
+                    display: flex;
+                    gap: 16px;
+                    margin-top: 16px;
+                }
+                .sa-step {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: #94a3b8;
+                    font-weight: 500;
+                    transition: color 0.3s;
+                }
+                .sa-step.active {
+                    color: #4f46e5;
+                }
+                .sa-step.done {
+                    color: #16a34a;
+                }
+                
+                /* Results State */
+                .sa-results {
+                    display: none;
+                }
+                .sa-card {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 24px;
+                    margin-bottom: 24px;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                }
+                .sa-ai-analysis {
+                    border-left: 4px solid #4f46e5;
+                    background: #f5f3ff;
+                }
+                .sa-ai-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: #4f46e5;
+                    margin-top: 0;
+                    margin-bottom: 16px;
+                    font-size: 20px;
+                }
+                .sa-analysis-content {
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #334155;
+                    white-space: pre-wrap;
+                }
+                .sa-stage-row {
+                    display: flex;
+                    flex-direction: column;
+                    margin-bottom: 16px;
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                .sa-stage-row:last-child {
+                    border-bottom: none;
+                    margin-bottom: 0;
+                    padding-bottom: 0;
+                }
+                .sa-stage-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 8px;
+                }
+                .sa-stage-name {
+                    font-weight: 600;
+                    font-size: 16px;
+                    color: #1e293b;
+                }
+                .sa-status-PASSED { color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+                .sa-status-FAILED { color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+                .sa-log-box {
+                    background: #1e293b;
+                    color: #f8fafc;
+                    padding: 16px;
+                    border-radius: 8px;
+                    font-family: monospace;
+                    font-size: 13px;
+                    overflow-x: auto;
+                    max-height: 400px;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+            </style>
 
-            <table class="pane bigtable" style="margin-top: 20px;">
-                <tr>
-                    <td class="pane-header">Job Name</td>
-                    <td class="pane">${result.jobName}</td>
-                </tr>
-                <tr>
-                    <td class="pane-header">Build Number</td>
-                    <td class="pane">${result.buildNumber}</td>
-                </tr>
-                <j:if test="${result.hasFailedStage()}">
-                    <tr>
-                        <td class="pane-header">Failed Stage</td>
-                        <td class="pane"><strong style="color: red;">${result.failedStageName}</strong></td>
-                    </tr>
-                </j:if>
-                <j:if test="${result.errorMessage != null}">
-                    <tr>
-                        <td class="pane-header">Error Message</td>
-                        <td class="pane" style="color: red;">${result.errorMessage}</td>
-                    </tr>
-                </j:if>
-            </table>
+            <st:bind var="itProxy" value="${it}" />
+            <div class="sa-wrap">
+                <div class="sa-hero">
+                    <div>
+                        <div style="font-size:13px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Smart Insights Analysis</div>
+                        <h1 class="sa-title">Build: ${it.run.fullDisplayName}</h1>
+                    </div>
+                </div>
 
-            <j:if test="${!result.stages.isEmpty()}">
-                <h2>Stage Logs</h2>
-                <j:forEach var="stage" items="${result.stages}">
-                    <h3 style="margin-top: 20px;">
-                        ${stage.stageName}
-                        <j:if test="${stage.failed}">
-                            <span style="color: red; font-weight: bold;"> [FAILED]</span>
-                        </j:if>
-                    </h3>
-                    <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 300px; overflow-y: auto;">${stage.stageLog}</pre>
-                </j:forEach>
-            </j:if>
+                <div id="sa-loader" class="sa-loader-container">
+                    <div class="sa-spinner"></div>
+                    <div class="sa-steps">
+                        <div id="step-1" class="sa-step active">
+                            <span>1. Extracting Logs</span>
+                        </div>
+                        <div id="step-2" class="sa-step">
+                            <span>2. Parsing Context</span>
+                        </div>
+                        <div id="step-3" class="sa-step">
+                            <span>3. Analyzing with AI...</span>
+                        </div>
+                    </div>
+                </div>
 
-            <h2>Full Build Log</h2>
-            <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;">${result.fullLog}</pre>
+                <div id="sa-results" class="sa-results">
+                    <div class="sa-card sa-ai-analysis">
+                        <h2 class="sa-ai-title">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            AI Root Cause Analysis
+                        </h2>
+                        <div id="sa-analysis-text" class="sa-analysis-content"></div>
+                    </div>
 
-            <p style="margin-top: 20px;">
-                <a href="${rootURL}/${it.run.url}">← Back to Build</a>
-            </p>
+                    <div class="sa-card">
+                        <h3 style="margin-top:0; margin-bottom:20px; color:#0f172a;">Build Execution Context</h3>
+                        <div id="sa-stages-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Update steps progressively for UI feedback
+                    setTimeout(function() {
+                        document.getElementById('step-1').className = 'sa-step done';
+                        document.getElementById('step-2').className = 'sa-step active';
+                        
+                        setTimeout(function() {
+                            document.getElementById('step-2').className = 'sa-step done';
+                            document.getElementById('step-3').className = 'sa-step active';
+                        }, 1000); // give the user time to read
+                    }, 800);
+
+                    // Call backend via Stapler js proxy
+                    itProxy.doAnalyzeAjax(function(response) {
+                        try {
+                            if (response.status !== 200) {
+                                throw new Error('Analysis request failed with status ' + response.status);
+                            }
+                            var rawData = response.responseObject();
+                            var data = JSON.parse(rawData);
+
+                            if (data.errorMessage &amp;&amp; !data.stages) {
+                                throw new Error(data.errorMessage);
+                            }
+
+                            // Complete UI progress
+                            document.getElementById('step-3').className = 'sa-step done';
+
+                            setTimeout(function() {
+                                // Hide loader, show results
+                                document.getElementById('sa-loader').style.display = 'none';
+                                document.getElementById('sa-results').style.display = 'block';
+
+                                // Set AI text safely
+                                document.getElementById('sa-analysis-text').innerText = data.aiAnalysis || 'No analysis available.';
+
+                                // Build stages HTML manually to avoid Jelly template string injection bugs
+                                var stagesContainer = document.getElementById('sa-stages-container');
+                                stagesContainer.innerHTML = '';
+
+                                if (data.stages &amp;&amp; data.stages.length > 0) {
+                                    data.stages.forEach(function(stage) {
+                                        var isFailed = stage.failed;
+                                        var statusClass = isFailed ? 'sa-status-FAILED' : 'sa-status-PASSED';
+                                        var statusText = isFailed ? 'FAILED' : 'PASSED';
+
+                                        var row = document.createElement('div');
+                                        row.className = 'sa-stage-row';
+
+                                        var header = document.createElement('div');
+                                        header.className = 'sa-stage-header';
+
+                                        var nameSpan = document.createElement('span');
+                                        nameSpan.className = 'sa-stage-name';
+                                        nameSpan.innerText = stage.stageName;
+
+                                        var statusSpan = document.createElement('span');
+                                        statusSpan.className = statusClass;
+                                        statusSpan.innerText = statusText;
+
+                                        header.appendChild(nameSpan);
+                                        header.appendChild(statusSpan);
+                                        row.appendChild(header);
+
+                                        // Render logs only if failed and has logs
+                                        if (isFailed &amp;&amp; stage.stageLog &amp;&amp; stage.stageLog.trim().length > 0) {
+                                            var logBox = document.createElement('div');
+                                            logBox.className = 'sa-log-box';
+                                            logBox.innerText = stage.stageLog;
+                                            row.appendChild(logBox);
+                                        }
+
+                                        stagesContainer.appendChild(row);
+                                    });
+                                } else {
+                                    stagesContainer.innerHTML = '<div>No stage context available</div>';
+                                }
+                            }, 500); // extra wait for smooth transition
+
+                        } catch(error) {
+                            document.getElementById('sa-loader').style.display = 'none';
+                            document.getElementById('sa-results').style.display = 'block';
+                            var errDiv = document.createElement('div');
+                            errDiv.style.color = '#dc2626';
+                            errDiv.style.fontWeight = 'bold';
+                            errDiv.innerText = 'Error analyzing build: ' + error.message;
+                            document.getElementById('sa-analysis-text').appendChild(errDiv);
+                        }
+                    });
+                });
+            </script>
         </l:main-panel>
     </l:layout>
 </j:jelly>

@@ -104,9 +104,20 @@ public class StageLogExtractor {
                         }
                     }
 
-                    // Extract logs
-                    String log = getStageLog(startNode, endNode, allNodes);
-                    LOGGER.fine("Extracted " + log.length() + " chars for stage: " + stageName);
+                    // Extract logs only for failed stages to save memory and LLM context
+                    String log = "";
+                    boolean isFailed = "FAILED".equals(status) || "ABORTED".equals(status);
+                    if (isFailed) {
+                        log = getStageLog(startNode, endNode, allNodes);
+                        // Truncate excessively long logs (keep last N chars to capture the error)
+                        int MAX_LOG_LENGTH = 15000;
+                        if (log.length() > MAX_LOG_LENGTH) {
+                            log = "...[log truncated]...\n" + log.substring(log.length() - MAX_LOG_LENGTH);
+                        }
+                        LOGGER.fine("Extracted " + log.length() + " chars for failed stage: " + stageName);
+                    } else {
+                        log = "No logs extracted for passed stage to reduce context size.";
+                    }
 
                     stages.add(new StageData(stageName, status, log, errorMsg, allNodes.indexOf(startNode)));
                 }

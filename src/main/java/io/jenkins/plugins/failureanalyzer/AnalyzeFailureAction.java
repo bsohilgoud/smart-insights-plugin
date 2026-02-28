@@ -1,14 +1,19 @@
 package io.jenkins.plugins.failureanalyzer;
 
+import com.google.gson.Gson;
 import hudson.model.Run;
 import jenkins.model.RunAction2;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.verb.POST;
+import org.kohsuke.stapler.bind.JavaScriptMethod;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AnalyzeFailureAction implements RunAction2 {
+
+    private static final Logger LOGGER = Logger.getLogger(AnalyzeFailureAction.class.getName());
     
     private transient Run<?, ?> run;
 
@@ -49,25 +54,34 @@ public class AnalyzeFailureAction implements RunAction2 {
         this.run = run;
     }
 
-    @POST
-    public void doAnalyze(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        run.checkPermission(Run.UPDATE);
-        
-        AnalysisResult result = StageLogExtractor.extractFailureData(run);
-        System.out.println("result = " + result);
-        System.out.println("result.getJobName() = " + result.getJobName());
-        
-        req.setAttribute("result", result);
-        req.getView(this, "result.jelly").forward(req, rsp);
-    }
+
 
 
     public void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         run.checkPermission(Run.UPDATE);
-
-        AnalysisResult result = StageLogExtractor.extractFailureData(run);
-
-        req.setAttribute("result", result);
+        // Render the page immediately. The fetching and AI analysis will happen via AJAX.
         req.getView(this, "index.jelly").forward(req, rsp);
+    }
+
+    @JavaScriptMethod
+    public String doAnalyzeAjax() {
+        run.checkPermission(Run.UPDATE);
+
+        try {
+            LOGGER.info("Starting background extraction and analysis...");
+            AnalysisResult result = StageLogExtractor.extractFailureData(run);
+            // Optionally clear full log if not used in UI to save bandwidth, or keep if needed
+            result.setFullLog("Full log omitted in AJAX to save bandwidth.");
+
+            LOGGER.info("Performing expected AI analysis...");
+            String aiResult = LLMAnalyzer.analyze(result);
+            result.setAiAnalysis(aiResult);
+            LOGGER.info("Analysis completed.");
+
+            return new Gson().toJson(result);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error in AJAX analysis", e);
+            return "{\"errorMessage\": \"Error in AJAX analysis: " + e.getMessage().replace("\"", "\\\"") + "\"}";
+        }
     }
 }
