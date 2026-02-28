@@ -28,48 +28,104 @@
                     font-weight: 700;
                     color: #0f172a;
                 }
-                /* Loading State */
+                /* Loading & Timeline State */
                 .sa-loader-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 60px 20px;
                     background: white;
                     border-radius: 12px;
+                    padding: 32px 40px;
+                    margin-bottom: 24px;
                     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-                    text-align: center;
                 }
-                .sa-spinner {
-                    width: 48px;
-                    height: 48px;
-                    border: 4px solid #e2e8f0;
-                    border-top-color: #4f46e5;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
+                .sa-timeline {
+                    position: relative;
+                    padding-left: 32px;
+                    margin: 10px 0;
+                }
+                .sa-timeline::before {
+                    content: '';
+                    position: absolute;
+                    left: 11px;
+                    top: 8px;
+                    bottom: 8px;
+                    width: 2px;
+                    background: #e2e8f0;
+                }
+                .sa-timeline-item {
+                    position: relative;
                     margin-bottom: 24px;
                 }
-                @keyframes spin { 
-                    to { transform: rotate(360deg); } 
+                .sa-timeline-item:last-child {
+                    margin-bottom: 0;
                 }
-                .sa-steps {
-                    display: flex;
-                    gap: 16px;
-                    margin-top: 16px;
-                }
-                .sa-step {
+                .sa-timeline-marker {
+                    position: absolute;
+                    left: -32px;
+                    top: 0;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: white;
+                    border: 2px solid #cbd5e1;
                     display: flex;
                     align-items: center;
-                    gap: 8px;
-                    color: #94a3b8;
+                    justify-content: center;
+                    z-index: 1;
+                    transition: all 0.3s ease;
+                }
+                .sa-timeline-item.active .sa-timeline-marker {
+                    border-color: #6366f1;
+                    background: #e0e7ff;
+                }
+                .sa-timeline-item.active .sa-timeline-marker::after {
+                    content: '';
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #6366f1;
+                    animation: sa-pulse-dot 1.5s infinite ease-in-out;
+                }
+                .sa-timeline-item.done .sa-timeline-marker {
+                    border-color: #10b981;
+                    background: #10b981;
+                }
+                .sa-timeline-item.done .sa-timeline-marker::after {
+                    content: '✓';
+                    color: white;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                .sa-timeline-item.failed .sa-timeline-marker {
+                    border-color: #ef4444;
+                    background: #ef4444;
+                }
+                .sa-timeline-item.failed .sa-timeline-marker::after {
+                    content: '✗';
+                    color: white;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                @keyframes sa-pulse-dot {
+                    0% { transform: scale(0.8); opacity: 0.5; }
+                    50% { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(0.8); opacity: 0.5; }
+                }
+                .sa-timeline-content {
+                    color: #64748b;
+                    font-size: 15px;
                     font-weight: 500;
+                    padding-top: 2px;
                     transition: color 0.3s;
                 }
-                .sa-step.active {
+                .sa-timeline-item.active .sa-timeline-content {
                     color: #4f46e5;
+                    font-weight: 600;
                 }
-                .sa-step.done {
-                    color: #16a34a;
+                .sa-timeline-item.done .sa-timeline-content {
+                    color: #10b981;
+                }
+                .sa-timeline-item.failed .sa-timeline-content {
+                    color: #ef4444;
+                    font-weight: 600;
                 }
                 
                 /* Results State */
@@ -142,6 +198,7 @@
             </style>
 
             <st:bind var="itProxy" value="${it}" />
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
             <div class="sa-wrap">
                 <div class="sa-hero">
                     <div>
@@ -151,16 +208,19 @@
                 </div>
 
                 <div id="sa-loader" class="sa-loader-container">
-                    <div class="sa-spinner"></div>
-                    <div class="sa-steps">
-                        <div id="step-1" class="sa-step active">
-                            <span>1. Extracting Logs</span>
+                    <h3 style="margin-top:0; color:#0f172a; margin-bottom:16px;">Analyzing Failure</h3>
+                    <div class="sa-timeline">
+                        <div id="step-1" class="sa-timeline-item active">
+                            <div class="sa-timeline-marker"></div>
+                            <div class="sa-timeline-content">Extracting Logs</div>
                         </div>
-                        <div id="step-2" class="sa-step">
-                            <span>2. Parsing Context</span>
+                        <div id="step-2" class="sa-timeline-item">
+                            <div class="sa-timeline-marker"></div>
+                            <div class="sa-timeline-content">Parsing Context</div>
                         </div>
-                        <div id="step-3" class="sa-step">
-                            <span>3. Analyzing with AI...</span>
+                        <div id="step-3" class="sa-timeline-item">
+                            <div class="sa-timeline-marker"></div>
+                            <div class="sa-timeline-content">Analyzing Pattern with AI...</div>
                         </div>
                     </div>
                 </div>
@@ -171,7 +231,7 @@
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                             AI Root Cause Analysis
                         </h2>
-                        <div id="sa-analysis-text" class="sa-analysis-content"></div>
+                        <div id="sa-analysis-text" class="sa-analysis-content markdown-body"></div>
                     </div>
 
                     <div class="sa-card">
@@ -181,16 +241,27 @@
                 </div>
             </div>
 
+            <style>
+                .markdown-body h3 { font-size: 1.25em; margin-bottom: 10px; color: #1e293b; }
+                .markdown-body h4 { font-size: 1.1em; margin-bottom: 8px; color: #334155; }
+                .markdown-body p { margin-bottom: 12px; }
+                .markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 20px; }
+                .markdown-body li { margin-bottom: 4px; }
+                .markdown-body strong { font-weight: 600; color: #0f172a; }
+                .markdown-body code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+                .markdown-body pre code { display: block; padding: 12px; background: #1e293b; color: #f8fafc; overflow-x: auto; }
+            </style>
+
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     // Update steps progressively for UI feedback
                     setTimeout(function() {
-                        document.getElementById('step-1').className = 'sa-step done';
-                        document.getElementById('step-2').className = 'sa-step active';
+                        document.getElementById('step-1').className = 'sa-timeline-item done';
+                        document.getElementById('step-2').className = 'sa-timeline-item active';
                         
                         setTimeout(function() {
-                            document.getElementById('step-2').className = 'sa-step done';
-                            document.getElementById('step-3').className = 'sa-step active';
+                            document.getElementById('step-2').className = 'sa-timeline-item done';
+                            document.getElementById('step-3').className = 'sa-timeline-item active';
                         }, 1000); // give the user time to read
                     }, 800);
 
@@ -215,41 +286,11 @@
                                 document.getElementById('sa-loader').style.display = 'none';
                                 document.getElementById('sa-results').style.display = 'block';
 
-                                // Set AI text safely
-                                var aiRaw = data.aiAnalysis || '';
-                                try {
-                                    var cleaned = aiRaw.replace(/```json/g, '').replace(/```/g, '').trim();
-                                    var aiObj = JSON.parse(cleaned);
-                                    
-                                    var html = '';
-                                    if (aiObj.flaky) {
-                                        html += '<div style="display:inline-block; background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-bottom: 16px; border: 1px solid #fcd34d;">⚠️ Flagged as potentially Flaky</div>';
-                                    }
-                                    
-                                    html += '<div style="margin-bottom: 16px;">';
-                                    html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Summary</h4>';
-                                    html += '<div style="color: #334155; line-height: 1.5;">' + (aiObj.summary || '') + '</div>';
-                                    html += '</div>';
-
-                                    html += '<div style="margin-bottom: 16px;">';
-                                    html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Root Cause</h4>';
-                                    html += '<div style="color: #334155; line-height: 1.5;">' + String(aiObj.root_cause || '').replace(/\n/g, '<br/>') + '</div>';
-                                    html += '</div>';
-
-                                    if (aiObj.suggested_fixes && aiObj.suggested_fixes.length > 0) {
-                                        html += '<div>';
-                                        html += '<h4 style="margin: 0 0 8px 0; font-size: 16px; color: #0f172a;">Suggested Fixes</h4>';
-                                        html += '<ul style="margin: 0; padding-left: 20px; color: #334155; line-height: 1.5;">';
-                                        aiObj.suggested_fixes.forEach(function(fix) {
-                                            html += '<li style="margin-bottom: 4px;">' + fix + '</li>';
-                                        });
-                                        html += '</ul>';
-                                        html += '</div>';
-                                    }
-                                    
-                                    document.getElementById('sa-analysis-text').innerHTML = html;
-                                } catch (e) {
-                                    // Fallback to preformatted text if not formatted JSON
+                                // Render Markdown
+                                var aiRaw = data.aiAnalysis || 'No analysis available.';
+                                if (typeof marked !== 'undefined') {
+                                    document.getElementById('sa-analysis-text').innerHTML = marked.parse(aiRaw);
+                                } else {
                                     document.getElementById('sa-analysis-text').innerText = aiRaw;
                                 }
 
@@ -257,42 +298,47 @@
                                 var stagesContainer = document.getElementById('sa-stages-container');
                                 stagesContainer.innerHTML = '';
 
-                                if (data.stages &amp;&amp; data.stages.length > 0) {
+                                if (data.stages && data.stages.length > 0) {
+                                    var tl = document.createElement('div');
+                                    tl.className = 'sa-timeline';
+                                    
                                     data.stages.forEach(function(stage) {
                                         var isFailed = stage.failed;
-                                        var statusClass = isFailed ? 'sa-status-FAILED' : 'sa-status-PASSED';
-                                        var statusText = isFailed ? 'FAILED' : 'PASSED';
+                                        
+                                        var item = document.createElement('div');
+                                        item.className = 'sa-timeline-item ' + (isFailed ? 'failed' : 'done');
 
-                                        var row = document.createElement('div');
-                                        row.className = 'sa-stage-row';
+                                        var marker = document.createElement('div');
+                                        marker.className = 'sa-timeline-marker';
+                                        item.appendChild(marker);
 
+                                        var content = document.createElement('div');
+                                        content.className = 'sa-timeline-content';
+                                        
                                         var header = document.createElement('div');
                                         header.className = 'sa-stage-header';
-
+                                        
                                         var nameSpan = document.createElement('span');
                                         nameSpan.className = 'sa-stage-name';
                                         nameSpan.innerText = stage.stageName;
 
-                                        var statusSpan = document.createElement('span');
-                                        statusSpan.className = statusClass;
-                                        statusSpan.innerText = statusText;
-
                                         header.appendChild(nameSpan);
-                                        header.appendChild(statusSpan);
-                                        row.appendChild(header);
+                                        content.appendChild(header);
 
-                                        // Render logs only if failed and has logs
-                                        if (isFailed &amp;&amp; stage.stageLog &amp;&amp; stage.stageLog.trim().length > 0) {
+                                        if (isFailed && stage.stageLog && stage.stageLog.trim().length > 0) {
                                             var logBox = document.createElement('div');
                                             logBox.className = 'sa-log-box';
+                                            logBox.style.marginTop = '12px';
                                             logBox.innerText = stage.stageLog;
-                                            row.appendChild(logBox);
+                                            content.appendChild(logBox);
                                         }
 
-                                        stagesContainer.appendChild(row);
+                                        item.appendChild(content);
+                                        tl.appendChild(item);
                                     });
+                                    stagesContainer.appendChild(tl);
                                 } else {
-                                    stagesContainer.innerHTML = '<div>No stage context available</div>';
+                                    stagesContainer.innerHTML = '<div style="color:#64748b;">No stage context available</div>';
                                 }
                             }, 500); // extra wait for smooth transition
 

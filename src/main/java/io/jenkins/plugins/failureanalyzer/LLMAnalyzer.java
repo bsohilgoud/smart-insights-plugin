@@ -14,7 +14,11 @@ public class LLMAnalyzer {
     private static final Logger LOGGER = Logger.getLogger(LLMAnalyzer.class.getName());
 
     private static String getApiKey() {
-        String apiKey = System.getenv("OPENAI_API_KEY");
+        String apiKey = System.getProperty("OPENAI_API_KEY");
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
+            return apiKey.trim();
+        }
+        apiKey = System.getenv("OPENAI_API_KEY");
         if (apiKey != null && !apiKey.trim().isEmpty()) {
             return apiKey.trim();
         }
@@ -77,18 +81,13 @@ public class LLMAnalyzer {
                 }
             }
 
-            promptBuilder.append("\nAnalyze the failure and respond in valid JSON matching exactly this schema without any markdown formatting wrappers:\n");
-            promptBuilder.append("{\n");
-            promptBuilder.append("  \"summary\": \"Brief 1-sentence summary of what failed\",\n");
-            promptBuilder.append("  \"root_cause\": \"Detailed root cause analysis considering the execution flow\",\n");
-            promptBuilder.append("  \"suggested_fixes\": [\"Actionable fix 1\", \"Actionable fix 2\"],\n");
-            promptBuilder.append("  \"flaky\": true\n");
-            promptBuilder.append("}\n\n");
-            
-            promptBuilder.append("Focus on:\n");
-            promptBuilder.append("1. Whether the failure is isolated to the failed stage or cascaded from earlier stages\n");
-            promptBuilder.append("2. Patterns in the execution flow that contributed to the failure\n");
-            promptBuilder.append("3. Specific actionable fixes (not generic advice)\n");
+            promptBuilder.append("\nAnalyze the failure and respond in cleanly formatted Markdown with the following sections:\n");
+            promptBuilder.append("### Summary\n");
+            promptBuilder.append("A brief 1-2 sentence summary of what failed (include if it is suspected to be flaky).\n\n");
+            promptBuilder.append("### Root Cause\n");
+            promptBuilder.append("Detailed root cause analysis considering the execution flow. Mention if the failure is isolated to the failed stage or cascaded from earlier stages, and point out patterns in the execution flow that contributed to the failure.\n\n");
+            promptBuilder.append("### Suggested Fixes\n");
+            promptBuilder.append("Provide a bulleted list of specific, actionable fixes (not generic advice).\n");
 
             LOGGER.info("Sending request to LLM using LangChain4j...");
             return model.generate(promptBuilder.toString());
