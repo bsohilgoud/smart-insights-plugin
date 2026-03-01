@@ -7,7 +7,10 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 import javax.servlet.ServletException;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,6 +71,12 @@ public class AnalyzeFailureAction implements RunAction2 {
         run.checkPermission(Run.UPDATE);
 
         try {
+            File cacheFile = new File(run.getRootDir(), "smart-insights-analysis.json");
+            if (cacheFile.exists()) {
+                LOGGER.info("Zero-cost cache hit! Returning saved analysis from: " + cacheFile.getAbsolutePath());
+                return new String(Files.readAllBytes(cacheFile.toPath()), StandardCharsets.UTF_8);
+            }
+
             LOGGER.info("Starting background extraction and analysis...");
             AnalysisResult result = StageLogExtractor.extractFailureData(run);
             // Optionally clear full log if not used in UI to save bandwidth, or keep if needed
@@ -78,7 +87,13 @@ public class AnalyzeFailureAction implements RunAction2 {
             result.setAiAnalysis(aiResult);
             LOGGER.info("Analysis completed.");
 
-            return new Gson().toJson(result);
+            String jsonResponse = new Gson().toJson(result);
+            
+            // Save to cache
+            Files.write(cacheFile.toPath(), jsonResponse.getBytes(StandardCharsets.UTF_8));
+            LOGGER.info("Saved analysis cache to: " + cacheFile.getAbsolutePath());
+
+            return jsonResponse;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error in AJAX analysis", e);
             return "{\"errorMessage\": \"Error in AJAX analysis: " + e.getMessage().replace("\"", "\\\"") + "\"}";

@@ -18,12 +18,36 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class StageLogExtractor {
 
     private static final Logger LOGGER = Logger.getLogger(StageLogExtractor.class.getName());
+
+    private static final Pattern[] NOISE_PATTERNS = {
+        Pattern.compile("^\\[Pipeline\\]"),
+        Pattern.compile("^\\d{2}:\\d{2}:\\d{2}\\s+\\["),
+        Pattern.compile("^Downloading:"),
+        Pattern.compile("^Downloaded:"),
+        Pattern.compile("^\\s*$"),
+        Pattern.compile("Progress \\(\\d+\\)"),
+        Pattern.compile("^\\+\\s?echo")
+    };
+
+    private static final Pattern[] SIGNAL_PATTERNS = {
+        Pattern.compile("(?i)(error|exception|fail|fatal|access denied)"),
+        Pattern.compile("(?i)(stack\\s?trace|caused\\s?by)"),
+        Pattern.compile("(?i)(compilation|build)\\s+(fail|error)"),
+        Pattern.compile("(?i)(test.*fail|assertion)"),
+        Pattern.compile("(?i)(timeout|abort|kill)"),
+        Pattern.compile("(?i)(permission\\s?denied|unauthorized)"),
+        Pattern.compile("exit code [1-9]")
+    };
 
     public static AnalysisResult extractFailureData(Run<?, ?> run) {
         AnalysisResult result = new AnalysisResult();
@@ -104,17 +128,27 @@ public class StageLogExtractor {
                         }
                     }
 
-                    // Extract logs only for failed stages to save memory and LLM context
+                    // Extract logs or checkout info based on stage type
                     String log = "";
                     boolean isFailed = "FAILED".equals(status) || "ABORTED".equals(status);
+                    boolean isCheckout = stageName.toLowerCase().contains("checkout") || stageName.toLowerCase().contains("scm");
+
                     if (isFailed) {
-                        log = getStageLog(startNode, endNode, allNodes);
-                        // Truncate excessively long logs (keep last N chars to capture the error)
-                        int MAX_LOG_LENGTH = 15000;
-                        if (log.length() > MAX_LOG_LENGTH) {
-                            log = "...[log truncated]...\n" + log.substring(log.length() - MAX_LOG_LENGTH);
+                        String rawLog = getStageLog(startNode, endNode, allNodes);
+                        log = extractSignalWithContext(rawLog, 5);
+                        // If no signals matched, fallback to raw log truncated to a smaller chunk
+                        if (log == null || log.isEmpty()) {
+                            int MAX_LOG_LENGTH = 10000;
+                            log = rawLog.length() > MAX_LOG_LENGTH ? 
+                                  "...[log truncated]...\n" + rawLog.substring(rawLog.length() - MAX_LOG_LENGTH) : rawLog;
                         }
-                        LOGGER.fine("Extracted " + log.length() + " chars for failed stage: " + stageName);
+                        LOGGER.fine("Extracted failed stage context log length: " + log.length());
+                    } else if (isCheckout) {
+                        String rawLog = getStageLog(startNode, endNode, allNodes);
+                        log = extractCheckoutInfo(rawLog);
+                        if (log.isEmpty()) {
+                            log = "Checkout completed.";
+                        }
                     } else {
                         log = "No logs extracted for passed stage to reduce context size.";
                     }
@@ -261,6 +295,78 @@ public class StageLogExtractor {
             }
         }
         return sb.toString();
+    }
+
+    private static String extractSignalWithContext(String rawLog, int window) {
+        String[] lines = rawLog.split("\\r?\\n");
+        Set<Integer> matches = new HashSet<>();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            boolean isSignal = false;
+            for (Pattern p : SIGNAL_PATTERNS) {
+                if (p.matcher(line).find()) {
+                    isSignal = true;
+                    break;
+                }
+            }
+            if (isSignal) {
+                int start = Math.max(0, i - window);
+                int end = Math.min(lines.length, i + window + 1);
+                for (int j = start; j < end; j++) {
+                    matches.add(j);
+                }
+            }
+        }
+
+        if (matches.isEmpty()) {
+            return "";
+        }
+
+        List<Integer> sortedMatches = new ArrayList<>(matches);
+        Collections.sort(sortedMatches);
+
+        StringBuilder result = new StringBuilder();
+        int lastIndex = -1;
+        for (int idx : sortedMatches) {
+            if (lastIndex != -1 && idx > lastIndex + 1) {
+                result.append("...\n");
+            }
+
+            String line = lines[idx];
+            boolean isNoise = false;
+            for (Pattern p : NOISE_PATTERNS) {
+                if (p.matcher(line).find()) {
+                    isNoise = true;
+                    break;
+                }
+            }
+
+            if (!isNoise) {
+                result.append(line).append("\n");
+            }
+
+            lastIndex = idx;
+        }
+
+        return result.toString().trim();
+    }
+
+    private static String extractCheckoutInfo(String rawLog) {
+        StringBuilder info = new StringBuilder();
+        String[] lines = rawLog.split("\\r?\\n");
+        for (String line : lines) {
+            String l = line.toLowerCase();
+            if (l.contains("checking out branch") || l.contains("checking out revision") 
+                || (l.contains("git fetch") && l.contains("http"))
+                || l.contains("commit message:")) {
+                
+                // remove noise prefix from checkout line if any
+                String cleanLine = line.replaceAll("^\\d{2}:\\d{2}:\\d{2}\\s+", "");
+                info.append("- ").append(cleanLine.trim()).append("\n");
+            }
+        }
+        return info.toString().trim();
     }
 
     private static String getFullLog(Run<?, ?> run) {

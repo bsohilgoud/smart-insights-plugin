@@ -12,7 +12,7 @@
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 24px;
-                    max-width: 1200px;
+                    max-width: 100%;
                 }
                 .sa-hero {
                     display: flex;
@@ -184,8 +184,9 @@
                 .sa-status-PASSED { color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
                 .sa-status-FAILED { color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
                 .sa-log-box {
-                    background: #1e293b;
-                    color: #f8fafc;
+                    background: #f8fafc;
+                    color: #0f172a;
+                    border: 1px solid #e2e8f0;
                     padding: 16px;
                     border-radius: 8px;
                     font-family: monospace;
@@ -242,14 +243,15 @@
             </div>
 
             <style>
-                .markdown-body h3 { font-size: 1.25em; margin-bottom: 10px; color: #1e293b; }
-                .markdown-body h4 { font-size: 1.1em; margin-bottom: 8px; color: #334155; }
-                .markdown-body p { margin-bottom: 12px; }
-                .markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 20px; }
-                .markdown-body li { margin-bottom: 4px; }
+                .markdown-body h3 { font-size: 1.15em; margin-bottom: 6px; margin-top: 16px; color: #1e293b; }
+                .markdown-body h4 { font-size: 1.05em; margin-bottom: 4px; color: #334155; }
+                .markdown-body p { margin-bottom: 8px; margin-top: 0; }
+                .markdown-body ul, .markdown-body ol { margin-bottom: 8px; margin-top: 0; padding-left: 20px; }
+                .markdown-body li { margin-bottom: 2px; }
                 .markdown-body strong { font-weight: 600; color: #0f172a; }
                 .markdown-body code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
-                .markdown-body pre code { display: block; padding: 12px; background: #1e293b; color: #f8fafc; overflow-x: auto; }
+                .markdown-body pre { margin-top: 4px; margin-bottom: 8px; }
+                .markdown-body pre code { display: block; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; overflow-x: auto; }
             </style>
 
             <script>
@@ -325,11 +327,12 @@
                                         header.appendChild(nameSpan);
                                         content.appendChild(header);
 
-                                        if (isFailed &amp;&amp; stage.stageLog &amp;&amp; stage.stageLog.trim().length > 0) {
+                                        var logContent = stage.stageLog;
+                                        if (logContent &amp;&amp; logContent.trim().length > 0 &amp;&amp; logContent.indexOf('reduce context size') === -1) {
                                             var logBox = document.createElement('div');
                                             logBox.className = 'sa-log-box';
                                             logBox.style.marginTop = '12px';
-                                            logBox.innerText = stage.stageLog;
+                                            logBox.innerText = logContent;
                                             content.appendChild(logBox);
                                         }
 

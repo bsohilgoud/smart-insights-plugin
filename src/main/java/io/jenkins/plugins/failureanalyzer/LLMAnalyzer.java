@@ -58,7 +58,7 @@ public class LLMAnalyzer {
                     .build();
 
             StringBuilder promptBuilder = new StringBuilder();
-            promptBuilder.append("You are a CI/CD failure analysis expert for Jenkins pipelines.\n\n");
+            promptBuilder.append("You are a strict, highly precise CI/CD failure analysis expert for Jenkins pipelines.\n\n");
             promptBuilder.append("**Job:** ").append(result.getJobName()).append("\n");
             promptBuilder.append("**Build:** #").append(result.getBuildNumber()).append("\n");
             
@@ -73,25 +73,48 @@ public class LLMAnalyzer {
             for (AnalysisResult.StageInfo stage : result.getStages()) {
                 promptBuilder.append("- ").append(stage.getStageName()).append(": ")
                         .append(stage.isFailed() ? "FAILED" : "PASSED").append("\n");
+                
+                // Append checkout info if present on passed stages
+                if (stage.getStageLog() != null && !stage.getStageLog().isEmpty() && !stage.isFailed()) {
+                    promptBuilder.append("  ").append(stage.getStageLog().replace("\n", "\n  ")).append("\n");
+                }
             }
 
-            promptBuilder.append("\n**Stage Details (Logs):**\n");
+            promptBuilder.append("\n**Failed Stage Logs (Context-Filtered):**\n");
             for (AnalysisResult.StageInfo stage : result.getStages()) {
                 if (stage.isFailed() && stage.getStageLog() != null && !stage.getStageLog().isEmpty()) {
                     promptBuilder.append(stage.getStageLog()).append("\n");
                 }
             }
 
-            promptBuilder.append("\nAnalyze the failure and respond in cleanly formatted Markdown with the following sections:\n");
-            promptBuilder.append("### Summary\n");
-            promptBuilder.append("A brief 1-2 sentence summary of what failed (include if it is suspected to be flaky).\n\n");
-            promptBuilder.append("### Root Cause\n");
-            promptBuilder.append("Detailed root cause analysis considering the execution flow. Mention if the failure is isolated to the failed stage or cascaded from earlier stages, and point out patterns in the execution flow that contributed to the failure.\n\n");
-            promptBuilder.append("### Suggested Fixes\n");
-            promptBuilder.append("Provide a bulleted list of specific, actionable fixes (not generic advice).\n");
+            promptBuilder.append("\n**INSTRUCTIONS:**\n");
+            
+            // --- Contextual Prompt Routing Based on Job Name ---
+            String jobName = result.getJobName() != null ? result.getJobName().toLowerCase() : "";
+            if (jobName.contains("web") || jobName.contains("responsive") || jobName.contains("fabric")) {
+                promptBuilder.append("0. **Context Focus (Web/Frontend):** Pay special attention to missing custom widget ZIPs, third-party library resolution, npm/yarn outputs, and Fabric publish stages.\n");
+            } else if (jobName.contains("android") || jobName.contains("ios") || jobName.contains("mobile")) {
+                promptBuilder.append("0. **Context Focus (Mobile):** Pay special attention to provisioning profiles, Gradle memory limits, CocoaPods/SDK version mismatches, and build tools.\n");
+            } else if (jobName.contains("backend") || jobName.contains("api") || jobName.contains("service")) {
+                promptBuilder.append("0. **Context Focus (Backend):** Pay special attention to database connection issues, missing environment variables, failing unit tests, and dependency alignment.\n");
+            }
 
-            LOGGER.info("Sending request to LLM using LangChain4j...");
-            return model.generate(promptBuilder.toString());
+            promptBuilder.append("Analyze the failure and respond in cleanly formatted Markdown.\n");
+            promptBuilder.append("1. **Do not hallucinate.** Only state facts present in the logs.\n");
+            promptBuilder.append("2. **Be extremely precise and concise.** Do not provide basic, generic suggestions (e.g., 'check your syntax' or 'verify credentials' unless the log explicitly shows an auth failure).\n");
+            promptBuilder.append("3. If you cannot identify the exact root cause from the provided log snippets, clearly state: \"I could not identify the actual issue from the provided logs.\"\n");
+            promptBuilder.append("4. Use the following sections:\n");
+            promptBuilder.append("\n### Summary\n");
+            promptBuilder.append("A brief 1-sentence summary of what exactly failed.\n");
+            promptBuilder.append("\n### Root Cause\n");
+            promptBuilder.append("The exact technical reason for the failure. If none is found, admit it clearly.\n");
+            promptBuilder.append("\n### Suggested Fixes\n");
+            promptBuilder.append("A bulleted list of specific, precise, and highly actionable fixes. Omit this section entirely if you do not have highly accurate suggestions.\n");
+
+            String finalPrompt = promptBuilder.toString();
+            LOGGER.info("------ FINAL AI PROMPT CONTEXT ------\n" + finalPrompt + "\n-------------------------------------");
+
+            return model.generate(finalPrompt);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error calling OpenAI API. Falling back to basic analysis.", e);
             return "AI Analysis failed: " + e.getMessage() + "\n\n" + BasicAnalyzer.analyze(result);
