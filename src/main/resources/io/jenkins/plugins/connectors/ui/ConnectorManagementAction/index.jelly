@@ -1,0 +1,127 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="Connectors Dashboard">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-up" href="${rootURL}/" title="Back to Jenkins" />
+                <l:task icon="symbol-add" href="new" title="Add New Connector" permission="${it.class.name.contains('Global') ? app.ADMINISTER : null}" />
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <style>
+                .connector-list {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+                .connector-list th, .connector-list td {
+                    padding: 12px 15px;
+                    border-bottom: 1px solid #ddd;
+                    text-align: left;
+                }
+                .connector-list th {
+                    background-color: #f4f6f8;
+                    font-weight: 600;
+                    color: #333;
+                }
+                .connector-list tr:hover {
+                    background-color: #fbfbfb;
+                }
+                .btn-delete {
+                    color: #d32f2f;
+                    cursor: pointer;
+                    background: none;
+                    border: none;
+                    font-weight: bold;
+                }
+                .toast-notification {
+                    visibility: hidden;
+                    min-width: 250px;
+                    background-color: #4CAF50;
+                    color: #fff;
+                    text-align: center;
+                    border-radius: 4px;
+                    padding: 16px;
+                    position: fixed;
+                    z-index: 1000;
+                    right: 30px;
+                    top: 30px;
+                    font-size: 14px;
+                }
+                .toast-notification.show {
+                    visibility: visible;
+                    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+                }
+                @keyframes fadein {
+                    from {top: 0; opacity: 0;}
+                    to {top: 30px; opacity: 1;}
+                }
+                @keyframes fadeout {
+                    from {top: 30px; opacity: 1;}
+                    to {top: 0; opacity: 0;}
+                }
+            </style>
+            
+            <div id="toast" class="toast-notification">Action completed successfully</div>
+
+            <script>
+                function showToast(message) {
+                    var toast = document.getElementById("toast");
+                    if (message) toast.innerText = message;
+                    toast.className = "toast-notification show";
+                    setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+                }
+                
+                // Show toast if URL param indicates success
+                if (window.location.search.indexOf('created=true') > -1) {
+                    showToast('Connector created successfully!');
+                } else if (window.location.search.indexOf('deleted=true') > -1) {
+                    showToast('Connector deleted successfully!');
+                }
+            </script>
+
+            <h1>Connectors Dashboard</h1>
+            <p>Manage all standard external connections scoped identically to your folders and pipelines.</p>
+
+            <table class="connector-list">
+                <thead>
+                    <tr>
+                        <th>Icon</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <j:forEach var="c" items="${it.connectors}">
+                        <tr>
+                            <td><l:icon class="${c.descriptor.iconClassName} icon-md" /></td>
+                            <td>${c.id}</td>
+                            <td><strong>${c.name}</strong></td>
+                            <td>${c.description}</td>
+                            <td>${c.descriptor.displayName}</td>
+                            <td>
+                                <!-- Edit natively navigates to edit page -->
+                                <a href="edit?id=${c.id}" class="jenkins-button" style="margin-right:8px;">Edit</a>
+                                <!-- We invoke a standard POST form to delete securely -->
+                                <f:form action="doDelete?id=${c.id}" method="post" style="display:inline;">
+                                    <f:submit value="Delete" class="btn-delete"/>
+                                </f:form>
+                            </td>
+                        </tr>
+                    </j:forEach>
+                    <j:if test="${empty it.connectors}">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding: 30px;">
+                                <div style="color:#666;">No connectors found in this scope.</div>
+                                <a href="new" class="jenkins-button jenkins-button--primary" style="margin-top:10px;">Create your first Connector</a>
+                            </td>
+                        </tr>
+                    </j:if>
+                </tbody>
+            </table>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

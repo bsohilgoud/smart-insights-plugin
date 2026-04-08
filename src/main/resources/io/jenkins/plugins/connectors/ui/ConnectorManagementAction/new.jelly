@@ -1,0 +1,52 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="Create New Connector">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-left" href="." title="Back to Dashboard" />
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <style>
+                .page-transition {
+                    animation: fadeIn 0.4s ease-in-out;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .kind-selector {
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    background: #f4f6f8;
+                    border-radius: 8px;
+                    border: 1px solid #e0e0e0;
+                }
+            </style>
+
+            <div class="page-transition">
+                <h1>Create New Connector</h1>
+                <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
+
+                <f:form action="create" method="post" name="config" id="create-connector-form">
+                    
+                    <f:entry title="Connector ID" field="id" description="Unique string identifier referenced by pipelines. e.g. my-github-connector">
+                        <f:textbox />
+                    </f:entry>
+                    <f:entry title="Name" field="name" description="Human-readable name.">
+                        <f:textbox />
+                    </f:entry>
+                    <f:entry title="Description" field="description">
+                        <f:textbox />
+                    </f:entry>
+
+                    <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" />
+
+                    <f:block>
+                        <f:submit value="Create Connector" />
+                    </f:block>
+                </f:form>
+            </div>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

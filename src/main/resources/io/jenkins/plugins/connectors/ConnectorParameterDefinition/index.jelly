@@ -1,0 +1,96 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout">
+    <f:entry title="${it.name}" description="${it.description}">
+        <div name="parameter" style="display:flex; gap:10px; align-items:center;">
+            <input type="hidden" name="name" value="${it.name}" />
+            <div style="flex-grow:1;">
+                <f:select field="value" class="connector-select-dropdown" />
+            </div>
+            
+            <div style="position:relative; display:inline-block;">
+                <button type="button" class="jenkins-button jenkins-button--primary" onclick="toggleConnectorMenu(event)">
+                    <span style="font-weight:bold; font-size:16px; margin-right:4px;">+</span> Add
+                </button>
+                <div id="connectorDropdownMenu" style="display:none; position:absolute; top:100%; right:0; background:white; border:1px solid #ccc; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:6px; z-index:1000; min-width:130px; padding:6px 0; font-size:14px;">
+                    <div id="connectorCtxProject" style="display:none; padding:8px 15px; cursor:pointer;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('project')">
+                        <l:icon class="symbol-folder" /> Project
+                    </div>
+                    <div style="padding:8px 15px; cursor:pointer;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('global')">
+                        <l:icon class="symbol-computer" /> Jenkins
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <dialog id="connectorDialog" style="width:800px; height:650px; padding:0; border-radius:10px; border:2px solid #ccc; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; background:#f4f6f8; border-bottom:1px solid #ddd;">
+                <h3 style="margin:0;">Create Connector</h3>
+                <button type="button" class="jenkins-button" onclick="document.getElementById('connectorDialog').close()">Close</button>
+            </div>
+            <iframe id="connectorIframe" src="" style="width:100%; height:calc(100% - 46px); border:none;"></iframe>
+        </dialog>
+
+        <style>
+            #connectorDialog::backdrop {
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(2px);
+            }
+        </style>
+
+        <script>
+            function closeConnectorDialogAndRefresh() {
+                var dialog = document.getElementById('connectorDialog');
+                if (dialog) dialog.close();
+                
+                fetch(window.location.href)
+                    .then(response => response.text())
+                    .then(html => {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(html, "text/html");
+                        
+                        var newSelects = doc.querySelectorAll('select.jenkins-select');
+                        var oldSelects = document.querySelectorAll('select.jenkins-select');
+                        
+                        for(var i=0; i&lt;oldSelects.length; i++) {
+                            if(oldSelects[i].getAttribute('name') === 'value' && oldSelects[i].parentNode.getAttribute('name') === 'parameter') {
+                                oldSelects[i].innerHTML = newSelects[i].innerHTML;
+                            }
+                        }
+                    });
+            }
+
+            // UI Menu Toggling
+            function toggleConnectorMenu(event) {
+                var menu = document.getElementById('connectorDropdownMenu');
+                var isVisible = menu.style.display === 'block';
+                menu.style.display = isVisible ? 'none' : 'block';
+                
+                // Detect Job Context Client-Side
+                var match = document.location.pathname.match(/(.*\/job\/[^\/]+)/);
+                if (match) {
+                    document.getElementById('connectorCtxProject').style.display = 'block';
+                    document.getElementById('connectorCtxProject').dataset.purl = match[1];
+                }
+                
+                if (!isVisible) {
+                    event.stopPropagation();
+                    document.addEventListener('click', function hideMenu() {
+                        menu.style.display = 'none';
+                        document.removeEventListener('click', hideMenu);
+                    });
+                }
+            }
+            
+            function openConnectorDialog(scope) {
+                var targetUrl = '${rootURL}/connectors/dialog';
+                if (scope === 'project') {
+                    var purl = document.getElementById('connectorCtxProject').dataset.purl;
+                    if (purl) targetUrl = purl + '/connectors/dialog';
+                }
+                
+                document.getElementById('connectorIframe').src = targetUrl;
+                document.getElementById('connectorDialog').showModal();
+            }
+        </script>
+    </f:entry>
+</j:jelly>

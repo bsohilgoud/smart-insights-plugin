@@ -1,0 +1,119 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="SCM Provider Engine" field="scmEngine">
+        <style>
+            .scm-grid {
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+                margin-bottom: 20px;
+                padding: 10px 0;
+            }
+            .scm-card {
+                width: 100px;
+                height: 100px;
+                border: 2px solid #e0e0e0;
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                background: linear-gradient(145deg, #ffffff, #f9f9f9);
+                box-shadow: 4px 4px 10px #eaeaea, -4px -4px 10px #ffffff;
+            }
+            .scm-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 6px 6px 12px #e0e0e0, -6px -6px 12px #ffffff;
+            }
+            .scm-card.selected {
+                border-color: #007bff;
+                background: #e8f4ff;
+                box-shadow: inset 2px 2px 5px #d1e8ff, inset -2px -2px 5px #ffffff;
+            }
+            .scm-card img {
+                width: 45px;
+                height: 45px;
+                margin-bottom: 8px;
+            }
+            .scm-card span {
+                font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+                color: #333;
+                text-align: center;
+                line-height: 1.1;
+            }
+        </style>
+        
+        <script>
+            var knownScmTemplates = [
+                'https://github.com/&lt;user&gt;/&lt;repo&gt;.git',
+                'https://gitlab.com/&lt;user&gt;/&lt;repo&gt;.git',
+                'https://bitbucket.org/&lt;workspace&gt;/&lt;repo&gt;.git',
+                'https://git-codecommit.&lt;region&gt;.amazonaws.com/v1/repos/&lt;repo&gt;',
+                'https://&lt;your-server&gt;.jfrog.io/artifactory/&lt;repo&gt;'
+            ];
+            
+            function selectScmEngine(engine, defaultUrlTemplate) {
+                var engineInputs = document.querySelectorAll('input[name="_.scmEngine"]');
+                engineInputs.forEach(function(hiddenInput) {
+                    if (hiddenInput) {
+                        hiddenInput.value = engine;
+                        hiddenInput.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                var cards = document.querySelectorAll('.scm-card');
+                cards.forEach(function(c) { c.classList.remove('selected'); });
+                var selectedCard = document.getElementById('card-' + engine);
+                if(selectedCard) {
+                    selectedCard.classList.add('selected');
+                }
+                
+                var urlInputs = document.querySelectorAll('input[name="_.repoUrl"]');
+                urlInputs.forEach(function(urlInput) {
+                    var currentVal = urlInput.value;
+                    if(!currentVal || currentVal === '' || knownScmTemplates.indexOf(currentVal) !== -1) {
+                        urlInput.value = defaultUrlTemplate;
+                    }
+                });
+            }
+        </script>
+        
+        <f:textbox field="scmEngine" style="display:none;" />
+        
+        <div class="scm-grid">
+            <div id="card-github" class="scm-card ${instance.scmEngine == 'github' ? 'selected' : ''}" onclick="selectScmEngine('github', 'https://github.com/&lt;user&gt;/&lt;repo&gt;.git')">
+                <img src="https://cdn.simpleicons.org/github/181717" />
+                <span>GitHub</span>
+            </div>
+            <div id="card-gitlab" class="scm-card ${instance.scmEngine == 'gitlab' ? 'selected' : ''}" onclick="selectScmEngine('gitlab', 'https://gitlab.com/&lt;user&gt;/&lt;repo&gt;.git')">
+                <img src="https://cdn.simpleicons.org/gitlab/FC6D26" />
+                <span>GitLab</span>
+            </div>
+            <div id="card-bitbucket" class="scm-card ${instance.scmEngine == 'bitbucket' ? 'selected' : ''}" onclick="selectScmEngine('bitbucket', 'https://bitbucket.org/&lt;workspace&gt;/&lt;repo&gt;.git')">
+                <img src="https://cdn.simpleicons.org/bitbucket/0052CC" />
+                <span>Bitbucket</span>
+            </div>
+            <div id="card-codecommit" class="scm-card ${instance.scmEngine == 'codecommit' ? 'selected' : ''}" onclick="selectScmEngine('codecommit', 'https://git-codecommit.&lt;region&gt;.amazonaws.com/v1/repos/&lt;repo&gt;')">
+                <img src="https://cdn.simpleicons.org/amazonaws/232F3E" />
+                <span>CodeCommit</span>
+            </div>
+            <div id="card-jfrog" class="scm-card ${instance.scmEngine == 'jfrog' ? 'selected' : ''}" onclick="selectScmEngine('jfrog', 'https://&lt;your-server&gt;.jfrog.io/artifactory/&lt;repo&gt;')">
+                <img src="https://cdn.simpleicons.org/jfrog/41BF47" />
+                <span>JFrog</span>
+            </div>
+        </div>
+    </f:entry>
+    
+    <f:entry title="Repository URL" field="repoUrl" description="Replace placeholders to form your authentic endpoint URL.">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Credentials" field="credentialsId" description="Select the linked Jenkins Credential (SSH, User/Pass, or Token) for this SCM.">
+        <c:select xmlns:c="/lib/credentials"/>
+    </f:entry>
+
+    <f:validateButton title="Test Configuration" progress="Validating reachability..." method="testConnection" with="repoUrl,credentialsId" />
+</j:jelly>

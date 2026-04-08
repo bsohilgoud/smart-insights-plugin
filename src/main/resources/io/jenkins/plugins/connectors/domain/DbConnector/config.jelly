@@ -1,0 +1,121 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="Database Engine" field="dbEngine">
+        <style>
+            .db-grid {
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+                margin-bottom: 20px;
+                padding: 10px 0;
+            }
+            .db-card {
+                width: 100px;
+                height: 100px;
+                border: 2px solid #e0e0e0;
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                background: linear-gradient(145deg, #ffffff, #f9f9f9);
+                box-shadow: 4px 4px 10px #eaeaea, -4px -4px 10px #ffffff;
+            }
+            .db-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 6px 6px 12px #e0e0e0, -6px -6px 12px #ffffff;
+            }
+            .db-card.selected {
+                border-color: #007bff;
+                background: #e8f4ff;
+                box-shadow: inset 2px 2px 5px #d1e8ff, inset -2px -2px 5px #ffffff;
+            }
+            .db-card img {
+                width: 45px;
+                height: 45px;
+                margin-bottom: 8px;
+            }
+            .db-card span {
+                font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+                color: #333;
+            }
+        </style>
+        
+        <script>
+            function selectDbEngine(engine, defaultPort, jdbcTemplate) {
+                var engineInputs = document.querySelectorAll('input[name="_.dbEngine"]');
+                engineInputs.forEach(function(hiddenInput) {
+                    if (hiddenInput) {
+                        hiddenInput.value = engine;
+                        hiddenInput.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                var cards = document.querySelectorAll('.db-card');
+                cards.forEach(function(c) { c.classList.remove('selected'); });
+                var selectedCard = document.getElementById('card-' + engine);
+                if(selectedCard) {
+                    selectedCard.classList.add('selected');
+                }
+                
+                var portInputs = document.querySelectorAll('input[name="_.port"]');
+                portInputs.forEach(function(portInput) {
+                    if(!portInput.value || portInput.value === '') {
+                        portInput.value = defaultPort;
+                    }
+                });
+                
+                var urlInputs = document.querySelectorAll('input[name="_.dbUrl"]');
+                urlInputs.forEach(function(urlInput) {
+                    if(!urlInput.value || urlInput.value === '') {
+                        urlInput.value = jdbcTemplate;
+                    }
+                });
+            }
+        </script>
+        
+        <f:textbox field="dbEngine" style="display:none;" />
+        
+        <div class="db-grid">
+            <div id="card-mysql" class="db-card ${instance.dbEngine == 'mysql' ? 'selected' : ''}" onclick="selectDbEngine('mysql', '3306', 'jdbc:mysql://&lt;host&gt;:3306/&lt;database&gt;')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" />
+                <span>MySQL</span>
+            </div>
+            <div id="card-postgres" class="db-card ${instance.dbEngine == 'postgres' ? 'selected' : ''}" onclick="selectDbEngine('postgres', '5432', 'jdbc:postgresql://&lt;host&gt;:5432/&lt;database&gt;')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" />
+                <span>PostgreSQL</span>
+            </div>
+            <div id="card-oracle" class="db-card ${instance.dbEngine == 'oracle' ? 'selected' : ''}" onclick="selectDbEngine('oracle', '1521', 'jdbc:oracle:thin:@&lt;host&gt;:1521:&lt;sid&gt;')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/oracle/oracle-original.svg" />
+                <span>Oracle</span>
+            </div>
+            <div id="card-azure" class="db-card ${instance.dbEngine == 'azure' ? 'selected' : ''}" onclick="selectDbEngine('azure', '1433', 'jdbc:sqlserver://&lt;server&gt;.database.windows.net:1433;database=&lt;database&gt;')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/azure/azure-original.svg" />
+                <span>Azure SQL</span>
+            </div>
+            <div id="card-amazon" class="db-card ${instance.dbEngine == 'amazon' ? 'selected' : ''}" onclick="selectDbEngine('amazon', '3306', 'jdbc:mysql://&lt;cluster-endpoint&gt;:3306/&lt;database&gt;')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg" />
+                <span>Amazon DB</span>
+            </div>
+        </div>
+    </f:entry>
+    
+    <f:entry title="JDBC Database URL" field="dbUrl" description="Replace the placeholders with your actual server coordinates.">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Port" field="port">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Username" field="username">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Password" field="password">
+        <f:password />
+    </f:entry>
+    
+    <f:validateButton title="Test Database Connection" progress="Testing..." method="testConnection" with="dbUrl,port,username,password" />
+</j:jelly>

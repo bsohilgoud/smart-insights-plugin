@@ -1,0 +1,49 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="Create New Connector" norefresh="true" decorated="false">
+        <l:main-panel style="padding:20px;">
+            <style>
+                .page-transition {
+                    animation: fadeIn 0.4s ease-in-out;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                body, html { background: transparent !important; }
+                
+                /* Hide main Jenkins navigation completely when inside this dialog! */
+                #page-header { display: none !important; }
+                #breadcrumbBar { display: none !important; }
+                .jenkins-breadcrumbs { display: none !important; }
+                header.jenkins-page-header { display: none !important; }
+                footer { display: none !important; }
+                #side-panel { display: none !important; }
+            </style>
+
+            <div class="page-transition">
+                <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
+
+                <f:form action="create" method="post" name="config" id="create-connector-form">
+                    <input type="hidden" name="isInline" value="true" />
+                    
+                    <f:entry title="Connector ID" field="id" description="Unique string identifier referenced by pipelines. e.g. my-github-connector">
+                        <f:textbox />
+                    </f:entry>
+                    <f:entry title="Name" field="name" description="Human-readable name.">
+                        <f:textbox />
+                    </f:entry>
+                    <f:entry title="Description" field="description">
+                        <f:textbox />
+                    </f:entry>
+
+                    <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" />
+
+                    <f:block>
+                        <f:submit value="Create Connector" />
+                    </f:block>
+                </f:form>
+            </div>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

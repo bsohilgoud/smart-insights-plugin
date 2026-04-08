@@ -1,36 +1,15 @@
-## TODOs
----
-- Identify any tools dependency is missing 
-    - then its appfactory related
-    - Also check for `AppFactoryExceptions` - Then highlight those errors to the users
-    - If path has `visualizer`
-        - Focus on the `CI Build` (logs) - check for the final error provided the ci-build ()
-            - Android - Signing
-            - iOS iPA
-            - Web Fabric Publish or services
-        - Try to go deeper i mean `nested job analysis` (custom build config / custom hooks)
+So far you did very good in implementation the failure analysis feature, i am very happy with the implementation, 
 
+Actually i was looking for one more interesting feature in jenkins a custom connector similar to the connectors in the harness CICD platform. 
 
-- Provide the links to the basecamp maybe it can check the ci-build failures
-- dont hallucinate
-- Improve the UI (Modern)
+So bascially what i need is to create a page which can be opened from any where just like Add Credentials dialog, i want similar to the Add Credentials but here i will planning little more robust
 
+I want to create a connectors with different things like SCM Connectors (where it has form fields like repo url, credentials (username or password or SSH creds) bind together as a single entity instead of me taking RepoUrl as seperaate and credentuals as separate and using them in the pipeline) maybe along with the test connection button to validate the connector. 
 
-## Common Issues:
----
-0. Invalid or Missing Parameters 
-1. Checkout issues (invalid repo, creds, vpn, branch, timeout, lfs)
-2. Visualizer project path - projectProps not found, (PROJECT_PATH)
-3. Tools and dependencies 
-    - java
-    - nodejs
-    - maven etc
-4. Custom Hooks / Custom Build Config
-5. Visualizer
-    - CI Build (failure)
-    - Models
-    - Fabric Creds Issues
-        - VPN issues 
-        - App not exists etc
-    - D8 issues
-6. 
+So i am planning to have different kind of Connectors, like SCM Connectors, Docker Registry Connectors, Kubernetes Connectors, Cloud Providers Connectors etc, Database Connectors etc i think you can gist of it, please ask me if you have any queries 
+
+And i want this to be complete and it should be secured very will anyway i am internally using the credentials inside these connectors like for example in SCM Connector the creds will still be stored as jenkins usernamea and passowrd creds or SSH creds as one filed and other filed as repo url but overall i will be combining them as single entity as connector with some id. So in the same way how i was using the Credential Parameter to list the creds in build params page, i should be able to create a param for for these connectors, so its basically very simple here, i will simple select my connector required for my build and there and then simply i can use it everywhere else,
+
+What do you think can we achieve this? can you please make a plan for this and for the page or popup window or it could be a seperate page as well and one more inmportant point i want these connectors as be user specific like who owns these creds like currenlty i can create a credentials under speific folder domains and it will be only visible inside the jobs of that domain or that folder. and there should also be a seperate page to list the connectors which the specific user has created. its almost as jenkins credentials implementation but more of a robust and not implementing from the scratch becuase since we are already stroreing the confidential datas as jenkins creds itself inside the connector, but not sure how to make it as a single entity. 
+
+So please plan for this and let me know if you have any queries. and also we need to leverage the jenkins native methods or apis or strategies as much as possible like jelly tags or any native place to store these connectors and how to expose them safely in the pipeline scripts (or expose some methods from the plugin which we can call from the pipeline scripts) and also think of a very good archecture and design pattern or solid priniciples to implement this. 

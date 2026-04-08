@@ -1,0 +1,50 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="Edit Connector">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-left" href="." title="Back to Dashboard" />
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <style>
+                .page-transition {
+                    animation: fadeIn 0.4s ease-in-out;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            </style>
+
+            <div class="page-transition">
+                <!-- Fetch context into instance variable natively bound by Jenkins forms -->
+                <j:set var="instance" value="${it.getConnector(request.getParameter('id'))}" />
+                <j:set var="descriptor" value="${instance.descriptor}" />
+
+                <h1>Edit Connector</h1>
+                <p>Modify settings for connector <strong>${request.getParameter('id')}</strong>.</p>
+
+                <f:form action="doUpdate" method="post" name="config" id="create-connector-form">
+                    
+                    <!-- We disable ID via readonly to ensure editing targets the exact persistence hash -->
+                    <f:entry title="Connector ID" field="id" description="Unique string identifier. (Immutable)">
+                        <f:textbox value="${instance.id}" readonly="readonly" />
+                    </f:entry>
+                    <f:entry title="Name" field="name" description="Human-readable name.">
+                        <f:textbox value="${instance.name}" />
+                    </f:entry>
+                    <f:entry title="Description" field="description">
+                        <f:textbox value="${instance.description}" />
+                    </f:entry>
+
+                    <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" default="${descriptor}" />
+
+                    <f:block>
+                        <f:submit value="Update Connector" />
+                    </f:block>
+                </f:form>
+            </div>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
