@@ -24,13 +24,21 @@
             <div class="page-transition">
                 <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
 
-                <f:form action="create" method="post" name="config" id="create-connector-form">
+                <f:form action="create" method="post" name="config" id="create-connector-form"
+                        onsubmit="return dlgConnValidate(this)">
                     <input type="hidden" name="isInline" value="true" />
-                    
-                    <f:entry title="Connector ID" field="id" description="Unique string identifier referenced by pipelines. e.g. my-github-connector">
-                        <f:textbox />
+
+                    <style>
+                        .field-err { color:#c00; font-size:12px; margin-top:4px; display:none; }
+                        .input-error { border-color:#c00 !important; box-shadow:0 0 0 2px rgba(204,0,0,0.15)!important; }
+                    </style>
+
+                    <f:entry title="Connector ID*" field="id"
+                             description="Required. Letters, digits, hyphens, underscores, dots only — no spaces.">
+                        <f:textbox id="dlg-conn-id" oninput="dlgValidateId(this)" />
+                        <div class="field-err" id="dlg-conn-id-error"></div>
                     </f:entry>
-                    <f:entry title="Name" field="name" description="Human-readable name.">
+                    <f:entry title="Name" field="name" description="Human-readable display name.">
                         <f:textbox />
                     </f:entry>
                     <f:entry title="Description" field="description">
@@ -40,9 +48,31 @@
                     <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" />
 
                     <f:block>
-                        <f:submit value="Create Connector" />
+                        <f:submit value="✔ Create Connector" />
                     </f:block>
                 </f:form>
+
+                <script>
+                    function dlgValidateId(input) {
+                        var val = input ? input.value : '';
+                        var errEl = document.getElementById('dlg-conn-id-error');
+                        var msg = '';
+                        if (!val.trim()) {
+                            msg = '⚠ Connector ID is required.';
+                        } else if (/\s/.test(val)) {
+                            msg = '⚠ No spaces allowed in ID.';
+                        } else if (!/^[\w\-\.]+$/.test(val)) {
+                            msg = '⚠ Only letters, digits, hyphens, underscores, dots allowed.';
+                        }
+                        if (errEl) { errEl.textContent = msg; errEl.style.display = msg ? 'block' : 'none'; }
+                        if (input) { input.classList.toggle('input-error', !!msg); }
+                        return !msg;
+                    }
+                    function dlgConnValidate() {
+                        var el = document.getElementById('dlg-conn-id');
+                        return el ? dlgValidateId(el) : true;
+                    }
+                </script>
             </div>
         </l:main-panel>
     </l:layout>

@@ -131,8 +131,12 @@ public class ConnectorManagementAction implements Action {
         }
 
         String connectorId = form.has("id") ? form.getString("id") : null;
+        // ID must be non-empty and contain no whitespace
         if (connectorId == null || connectorId.trim().isEmpty()) {
             throw new IllegalArgumentException("Connector ID is mandatory and cannot be empty.");
+        }
+        if (connectorId.contains(" ") || !connectorId.matches("[\\w\\-\\.]+")) {
+            throw new IllegalArgumentException("Connector ID must only contain letters, digits, hyphens, underscores, or dots — no spaces.");
         }
 
         if (form.has("id")) connectorPayload.put("id", form.getString("id"));

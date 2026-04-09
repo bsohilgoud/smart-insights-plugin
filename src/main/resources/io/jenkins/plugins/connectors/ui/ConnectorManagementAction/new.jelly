@@ -28,24 +28,64 @@
                 <h1>Create New Connector</h1>
                 <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
 
-                <f:form action="create" method="post" name="config" id="create-connector-form">
-                    
-                    <f:entry title="Connector ID" field="id" description="Unique string identifier referenced by pipelines. e.g. my-github-connector">
-                        <f:textbox />
+                <style>
+                    .field-err { color: #c00; font-size: 12px; margin-top: 4px; display: none; }
+                    input.input-error, .jenkins-input.input-error { border-color: #c00 !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
+                </style>
+
+                <f:form action="create" method="post" name="config" id="create-connector-form"
+                        onsubmit="return connCreateValidate(this)">
+
+                    <f:entry title="Connector ID*" field="id"
+                             description="Required. Alphanumeric, hyphens, underscores only. No spaces. e.g. my-github-connector">
+                        <f:textbox id="conn-id-input"
+                                   oninput="connValidateId(this)" />
+                        <div class="field-err" id="conn-id-error"></div>
                     </f:entry>
-                    <f:entry title="Name" field="name" description="Human-readable name.">
+                    <f:entry title="Name" field="name" description="Human-readable display name.">
                         <f:textbox />
                     </f:entry>
                     <f:entry title="Description" field="description">
                         <f:textbox />
                     </f:entry>
 
-                    <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" />
+                    <f:dropdownDescriptorSelector field="connector" title="Connector Category"
+                                                  descriptors="${it.connectorDescriptors}" />
 
                     <f:block>
-                        <f:submit value="Create Connector" />
+                        <f:submit value="✔ Create Connector" />
+                        <a href="." class="jenkins-button" style="margin-left:10px;">Cancel</a>
                     </f:block>
                 </f:form>
+
+                <script>
+                    function connValidateId(input) {
+                        var val = input ? input.value : '';
+                        var errEl = document.getElementById('conn-id-error');
+                        var msg = '';
+                        if (!val.trim()) {
+                            msg = '⚠ Connector ID is required.';
+                        } else if (/\s/.test(val)) {
+                            msg = '⚠ ID must not contain spaces.';
+                        } else if (!/^[\w\-\.]+$/.test(val)) {
+                            msg = '⚠ ID may only contain letters, digits, hyphens, underscores, or dots.';
+                        }
+                        if (errEl) {
+                            errEl.textContent = msg;
+                            errEl.style.display = msg ? 'block' : 'none';
+                        }
+                        if (input) {
+                            input.classList.toggle('input-error', !!msg);
+                        }
+                        return !msg;
+                    }
+
+                    function connCreateValidate(form) {
+                        var idInput = document.getElementById('conn-id-input');
+                        if (!idInput) return true; // let server validate
+                        return connValidateId(idInput);
+                    }
+                </script>
             </div>
         </l:main-panel>
     </l:layout>

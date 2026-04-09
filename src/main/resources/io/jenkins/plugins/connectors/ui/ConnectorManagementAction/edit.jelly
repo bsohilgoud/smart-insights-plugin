@@ -8,64 +8,59 @@
         </l:side-panel>
         <l:main-panel>
             <style>
-                .page-transition { animation: fadeIn 0.4s ease-in-out; }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to   { opacity: 1; transform: translateY(0); }
+                .page-transition { animation: fadeIn 0.35s ease-in-out; }
+                @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+                .info-badge {
+                    display: inline-flex; align-items: center; gap: 8px;
+                    background: #f0f7ff; border: 1px solid #c6e0f5;
+                    border-radius: 6px; padding: 9px 14px; margin-bottom: 18px;
+                    font-size: 13px; color: #2d5a8e;
                 }
-                .connector-info-box {
-                    background: #f0f7ff;
-                    border: 1px solid #c6e0f5;
-                    border-radius: 6px;
-                    padding: 10px 15px;
-                    margin-bottom: 16px;
-                    font-size: 13px;
-                    color: #2d5a8e;
+                .field-error {
+                    color: #c00; font-size: 12px; margin-top: 3px; display: none;
                 }
+                .jenkins-input[aria-invalid="true"] { border-color: #c00 !important; }
             </style>
 
             <div class="page-transition">
                 <!--
                     Retrieve the existing connector from storage.
-                    Setting 'instance' as a Jelly variable makes it available to sub-forms
-                    loaded by f:dropdownDescriptorSelector — they check ${instance.fieldName}
-                    to pre-populate their fields.
+                    IMPORTANT: setting 'instance' as Jelly var makes sub-forms (ScmConnector/config.jelly)
+                    automatically read ${instance.repoUrl}, ${instance.scmEngine} etc. for pre-population.
                 -->
                 <j:set var="instance" value="${it.getConnector(request.getParameter('id'))}" />
 
                 <j:if test="${instance == null}">
-                    <div style="padding:20px; background:#fff3f3; border:1px solid #f5c6c6; border-radius:6px; color:#c00;">
-                        ⚠ Connector with ID <code>${request.getParameter('id')}</code> was not found.
-                        It may have been deleted. <a href=".">← Back to Dashboard</a>
+                    <div style="padding:16px; background:#fff3f3; border:1px solid #f5c6c6; border-radius:6px; color:#c00;">
+                        ⚠ Connector <code>${request.getParameter('id')}</code> not found —
+                        it may have been deleted. <a href=".">← Back</a>
                     </div>
                 </j:if>
 
                 <j:if test="${instance != null}">
                     <h1>Edit Connector</h1>
 
-                    <div class="connector-info-box">
-                        ℹ Editing <strong>${instance.descriptor.displayName}</strong>:
+                    <div class="info-badge">
+                        💾 Editing <strong>${instance.descriptor.displayName}</strong>:
                         <strong>${instance.name}</strong>
-                        <code style="margin-left:6px; background:#e0eeff; padding:2px 6px; border-radius:3px;">${instance.id}</code>
+                        <code style="background:#e0eeff; padding:2px 6px; border-radius:3px; margin-left:4px;">${instance.id}</code>
                     </div>
 
                     <!--
-                        action="update" → Stapler routes to doUpdate().
-
-                        IMPORTANT: We do NOT use field="id" here because f:textbox with field=
-                        tries to bind to a descriptor field via introspection. Instead we use
-                        a plain <input> with name="id" to pass the immutable ID in the POST body,
-                        which parseConnectorFromRequest() reads from form.getString("id").
+                        action="update" → Stapler routes this to doUpdate().
+                        The ID is passed as a hidden input so doUpdate can look up
+                        the existing connector and replace it.
                     -->
                     <f:form action="update" method="post" name="config" id="edit-connector-form">
 
-                        <!-- Pass the immutable ID as a hidden field -->
+                        <!-- Immutable ID passed as hidden field -->
                         <input type="hidden" name="id" value="${instance.id}" />
 
-                        <f:entry title="Connector ID" description="Unique identifier — cannot be changed.">
+                        <f:entry title="Connector ID"
+                                 description="Unique identifier — cannot be changed after creation.">
                             <input type="text" value="${instance.id}" readonly="readonly"
                                    class="jenkins-input"
-                                   style="background:#f5f5f5; cursor:not-allowed; color:#666;" />
+                                   style="background:#f4f4f4; cursor:not-allowed; color:#555;" />
                         </f:entry>
 
                         <f:entry title="Name" field="name" description="Human-readable display name.">
@@ -77,22 +72,56 @@
                         </f:entry>
 
                         <!--
-                            f:dropdownDescriptorSelector pre-selects the correct descriptor
-                            based on instance.class (i.e. ScmConnector vs DbConnector).
-                            The sub-form (ScmConnector/config.jelly) reads ${instance.scmEngine}
-                            etc. from the 'instance' Jelly variable set above, pre-populating fields.
+                            f:dropdownDescriptorSelector renders all connector type tabs.
+                            We use JavaScript (below) to auto-select the correct type after render,
+                            since there is no native 'default' pre-selection mechanism.
+                            The 'instance' variable being set ensures each sub-form reads existing
+                            values via ${instance.repoUrl} etc.
                         -->
                         <f:dropdownDescriptorSelector
                             field="connector"
                             title="Connector Type"
-                            descriptors="${it.connectorDescriptors}"
-                            default="${instance.descriptor}" />
+                            descriptors="${it.connectorDescriptors}" />
 
                         <f:block>
                             <f:submit value="💾 Update Connector" />
-                            <a href="." style="margin-left:12px;" class="jenkins-button">Cancel</a>
+                            <a href="." class="jenkins-button" style="margin-left:10px;">Cancel</a>
                         </f:block>
                     </f:form>
+
+                    <script>
+                        // Auto-select the correct connector type in the dropdown after page render.
+                        // f:dropdownDescriptorSelector has no native 'pre-select' support — we
+                        // drive the selection via JavaScript by matching the descriptor displayName.
+                        (function() {
+                            var targetTypeName = '${instance.descriptor.displayName}';
+
+                            function selectCorrectType() {
+                                // The descriptor selector renders a <select> with one option per type
+                                var selects = document.querySelectorAll('select');
+                                for (var i = 0; i &lt; selects.length; i++) {
+                                    var sel = selects[i];
+                                    for (var j = 0; j &lt; sel.options.length; j++) {
+                                        if (sel.options[j].text.trim() === targetTypeName.trim()) {
+                                            if (sel.selectedIndex !== j) {
+                                                sel.selectedIndex = j;
+                                                // Trigger Jenkins' own change handler to show the right sub-form
+                                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                                            }
+                                            return true;
+                                        }
+                                    }
+                                }
+                                return false;
+                            }
+
+                            // Try immediately, then retry after a tick (Jenkins may render asynchronously)
+                            if (!selectCorrectType()) {
+                                setTimeout(selectCorrectType, 100);
+                                setTimeout(selectCorrectType, 400);
+                            }
+                        })();
+                    </script>
                 </j:if>
             </div>
         </l:main-panel>
