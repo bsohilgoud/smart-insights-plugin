@@ -18,32 +18,59 @@
             </style>
 
             <div class="page-transition">
-                <!-- Fetch context into instance variable natively bound by Jenkins forms -->
+                <!--
+                    Jenkins Jelly binding: 'instance' is used by f:form and sub-forms to pre-populate fields.
+                    We set it here so that each f:textbox picks up existing connector values automatically.
+                    The descriptor's config.jelly reads ${instance.fieldName} to render pre-filled inputs.
+                -->
                 <j:set var="instance" value="${it.getConnector(request.getParameter('id'))}" />
-                <j:set var="descriptor" value="${instance.descriptor}" />
+                <j:if test="${instance == null}">
+                    <div style="padding:20px; color:#c00;">
+                        Error: Connector with ID "${request.getParameter('id')}" was not found.
+                        <a href=".">Back to Dashboard</a>
+                    </div>
+                </j:if>
+                <j:if test="${instance != null}">
+                    <h1>Edit Connector</h1>
+                    <p>Modify settings for <strong>${instance.name}</strong> <code>(${instance.id})</code>.</p>
 
-                <h1>Edit Connector</h1>
-                <p>Modify settings for connector <strong>${request.getParameter('id')}</strong>.</p>
+                    <!--
+                        action="update" → Stapler routes to doUpdate().
+                        id is passed as a hidden hidden field so doUpdate can look up and replace the connector.
+                    -->
+                    <f:form action="update" method="post" name="config" id="edit-connector-form">
 
-                <f:form action="doUpdate" method="post" name="config" id="create-connector-form">
-                    
-                    <!-- We disable ID via readonly to ensure editing targets the exact persistence hash -->
-                    <f:entry title="Connector ID" field="id" description="Unique string identifier. (Immutable)">
-                        <f:textbox value="${instance.id}" readonly="readonly" />
-                    </f:entry>
-                    <f:entry title="Name" field="name" description="Human-readable name.">
-                        <f:textbox value="${instance.name}" />
-                    </f:entry>
-                    <f:entry title="Description" field="description">
-                        <f:textbox value="${instance.description}" />
-                    </f:entry>
+                        <!-- Hidden field carries the immutable ID so doUpdate knows which connector to replace -->
+                        <input type="hidden" name="id" value="${instance.id}" />
 
-                    <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" default="${descriptor}" />
+                        <f:entry title="Connector ID" description="Unique string identifier (read-only — cannot be changed).">
+                            <input type="text" value="${instance.id}" readonly="readonly"
+                                   class="jenkins-input" style="background:#f5f5f5; cursor:not-allowed;" />
+                        </f:entry>
 
-                    <f:block>
-                        <f:submit value="Update Connector" />
-                    </f:block>
-                </f:form>
+                        <f:entry title="Name" field="name" description="Human-readable display name.">
+                            <f:textbox value="${instance.name}" />
+                        </f:entry>
+
+                        <f:entry title="Description" field="description">
+                            <f:textbox value="${instance.description}" />
+                        </f:entry>
+
+                        <!--
+                            f:dropdownDescriptorSelector will render the selected descriptor's config.jelly.
+                            Setting 'instance' above means those sub-forms will have access to
+                            ${instance.scmEngine}, ${instance.repoUrl}, etc. for pre-population.
+                        -->
+                        <f:dropdownDescriptorSelector
+                            field="connector"
+                            title="Connector Type"
+                            descriptors="${it.connectorDescriptors}" />
+
+                        <f:block>
+                            <f:submit value="Update Connector" />
+                        </f:block>
+                    </f:form>
+                </j:if>
             </div>
         </l:main-panel>
     </l:layout>

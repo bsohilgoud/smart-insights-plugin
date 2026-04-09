@@ -86,20 +86,20 @@ public class ConnectorManagementAction implements Action {
     private Connector parseConnectorFromRequest(StaplerRequest req, net.sf.json.JSONObject form) throws Descriptor.FormException {
         net.sf.json.JSONObject connectorPayload = form.has("connector") ? form.getJSONObject("connector") : form;
         String type = null;
-        
+
         if (connectorPayload.has("stapler-class")) {
             type = connectorPayload.getString("stapler-class");
         } else if (connectorPayload.has("$class")) {
             type = connectorPayload.getString("$class");
         }
-        
+
         if ((type == null || type.length() < 3) && form.has("")) {
             String rootType = form.getString("");
             if (rootType.contains(".")) {
                 type = rootType;
             }
         }
-        
+
         if (type == null || type.isEmpty()) {
             if (form.has("connectorType")) {
                 type = form.getString("connectorType");
@@ -107,7 +107,7 @@ public class ConnectorManagementAction implements Action {
                 type = req.getParameter("connectorType");
             }
         }
-        
+
         if (type == null || type.isEmpty()) {
             throw new IllegalArgumentException("Connector type must be provided. JSON Dump: " + form);
         }
@@ -125,7 +125,8 @@ public class ConnectorManagementAction implements Action {
         if (form.has("id")) connectorPayload.put("id", form.getString("id"));
         if (form.has("name")) connectorPayload.put("name", form.getString("name"));
         if (form.has("description")) connectorPayload.put("description", form.getString("description"));
-        
+
+        // Fix for Jenkins Table-to-Div Migration bug: flatten JSONArrays back to single String
         for (Object keyObj : new ArrayList<Object>(connectorPayload.keySet())) {
             String k = String.valueOf(keyObj);
             Object v = connectorPayload.get(k);
@@ -146,7 +147,7 @@ public class ConnectorManagementAction implements Action {
 
         net.sf.json.JSONObject form = req.getSubmittedForm();
         System.out.println("DEBUG CONNECTORS FORM PAYLOAD: \n" + form.toString(2));
-        
+
         Connector newConnector = parseConnectorFromRequest(req, form);
 
         if (context instanceof AbstractFolder) {
@@ -170,6 +171,7 @@ public class ConnectorManagementAction implements Action {
         }
     }
 
+    // Stapler maps form action="update" → doUpdate
     @org.kohsuke.stapler.verb.POST
     public void doUpdate(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException, Descriptor.FormException {
         checkPermission(ConnectorPermissions.UPDATE);
@@ -192,6 +194,7 @@ public class ConnectorManagementAction implements Action {
         rsp.sendRedirect2("?updated=true");
     }
 
+    // Stapler maps form action="delete" → doDelete
     @org.kohsuke.stapler.verb.POST
     public void doDelete(@QueryParameter("id") String id, StaplerRequest req, StaplerResponse rsp) throws IOException {
         checkPermission(ConnectorPermissions.DELETE);
@@ -205,6 +208,6 @@ public class ConnectorManagementAction implements Action {
             GlobalConnectorStorage.get().removeConnector(id);
         }
 
-        rsp.sendRedirect2(".");
+        rsp.sendRedirect2("?deleted=true");
     }
 }

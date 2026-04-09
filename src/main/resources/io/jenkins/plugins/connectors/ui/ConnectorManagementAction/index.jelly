@@ -74,9 +74,11 @@
                 
                 // Show toast if URL param indicates success
                 if (window.location.search.indexOf('created=true') > -1) {
-                    showToast('Connector created successfully!');
+                    showToast('✓ Connector created successfully!');
                 } else if (window.location.search.indexOf('deleted=true') > -1) {
-                    showToast('Connector deleted successfully!');
+                    showToast('✓ Connector deleted successfully!');
+                } else if (window.location.search.indexOf('updated=true') > -1) {
+                    showToast('✓ Connector updated successfully!');
                 }
             </script>
 
@@ -104,10 +106,10 @@
                             <td>${c.descriptor.displayName}</td>
                             <td>
                                 <!-- Edit natively navigates to edit page -->
-                                <a href="edit?id=${c.id}" class="jenkins-button" style="margin-right:8px;">Edit</a>
-                                <!-- We invoke a standard POST form to delete securely -->
-                                <f:form action="doDelete?id=${c.id}" method="post" style="display:inline;">
-                                    <f:submit value="Delete" class="btn-delete"/>
+                                <a href="edit?id=${c.id}" class="jenkins-button" style="margin-right:8px;">✎ Edit</a>
+                                <!-- Stapler maps action="delete" → doDelete -->
+                                <f:form action="delete?id=${c.id}" method="post" style="display:inline;">
+                                    <f:submit value="✕ Delete" class="btn-delete"/>
                                 </f:form>
                             </td>
                         </tr>

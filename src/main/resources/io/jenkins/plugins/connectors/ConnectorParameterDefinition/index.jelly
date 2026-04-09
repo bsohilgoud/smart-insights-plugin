@@ -11,12 +11,12 @@
                 <button type="button" class="jenkins-button jenkins-button--primary" onclick="toggleConnectorMenu(event)">
                     <span style="font-weight:bold; font-size:16px; margin-right:4px;">+</span> Add
                 </button>
-                <div id="connectorDropdownMenu" style="display:none; position:absolute; top:100%; right:0; background:white; border:1px solid #ccc; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:6px; z-index:1000; min-width:130px; padding:6px 0; font-size:14px;">
-                    <div id="connectorCtxProject" style="display:none; padding:8px 15px; cursor:pointer;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('project')">
-                        <l:icon class="symbol-folder" /> Project
+                <div id="connectorDropdownMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:white; border:1px solid #ccc; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:6px; z-index:1000; min-width:150px; padding:4px 0; font-size:13px;">
+                    <div id="connectorCtxProject" style="display:none; padding:8px 14px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('project')">
+                        📁 Project
                     </div>
-                    <div style="padding:8px 15px; cursor:pointer;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('global')">
-                        <l:icon class="symbol-computer" /> Jenkins
+                    <div style="padding:8px 14px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('global')">
+                        🖥 Jenkins
                     </div>
                 </div>
             </div>
@@ -65,11 +65,11 @@
                 var isVisible = menu.style.display === 'block';
                 menu.style.display = isVisible ? 'none' : 'block';
                 
-                // Detect Job Context Client-Side
-                var match = document.location.pathname.match(/(.*\/job\/[^\/]+)/);
-                if (match) {
+                // Detect Job Context Client-Side — match full nested /job/X/job/Y paths
+                var pathMatch = document.location.pathname.match(/^(.*\/job\/[^\/]+(?:\/job\/[^\/]+)*)/);
+                if (pathMatch) {
                     document.getElementById('connectorCtxProject').style.display = 'block';
-                    document.getElementById('connectorCtxProject').dataset.purl = match[1];
+                    document.getElementById('connectorCtxProject').dataset.purl = pathMatch[1];
                 }
                 
                 if (!isVisible) {
