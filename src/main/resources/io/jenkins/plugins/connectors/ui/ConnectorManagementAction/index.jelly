@@ -83,7 +83,19 @@
             </script>
 
             <h1>Connectors Dashboard</h1>
-            <p>Manage all standard external connections scoped identically to your folders and pipelines.</p>
+            <p>Manage all external connections scoped to your folders and pipelines.</p>
+
+            <!-- Issue 3: Show where connectors are stored so users don't get confused -->
+            <div style="display:inline-flex; align-items:center; gap:8px; background:#f0f7ff; border:1px solid #c6e0f5;
+                        border-radius:6px; padding:8px 14px; margin-bottom:16px; font-size:13px; color:#2d5a8e;">
+                <span style="font-size:16px;">💾</span>
+                <span>
+                    Storage scope: <strong>
+                        <j:if test="${it.folder}">📁 ${it.scopeLabel}</j:if>
+                        <j:if test="${!it.folder}">🌐 ${it.scopeLabel}</j:if>
+                    </strong>
+                </span>
+            </div>
 
             <table class="connector-list">
                 <thead>

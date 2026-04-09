@@ -83,6 +83,19 @@ public class ConnectorManagementAction implements Action {
         return ExtensionList.lookup(Connector.ConnectorDescriptor.class);
     }
 
+    /** Used by Jelly to determine storage scope without needing instanceof in EL. */
+    public boolean isFolder() {
+        return context instanceof AbstractFolder;
+    }
+
+    /** Human-readable scope label shown in the dashboard info badge. */
+    public String getScopeLabel() {
+        if (context instanceof AbstractFolder) {
+            return "Folder: " + ((AbstractFolder<?>) context).getFullName();
+        }
+        return "Global (JENKINS_HOME/connectors.xml)";
+    }
+
     private Connector parseConnectorFromRequest(StaplerRequest req, net.sf.json.JSONObject form) throws Descriptor.FormException {
         net.sf.json.JSONObject connectorPayload = form.has("connector") ? form.getJSONObject("connector") : form;
         String type = null;

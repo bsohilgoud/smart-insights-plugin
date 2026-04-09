@@ -8,44 +8,64 @@
         </l:side-panel>
         <l:main-panel>
             <style>
-                .page-transition {
-                    animation: fadeIn 0.4s ease-in-out;
-                }
+                .page-transition { animation: fadeIn 0.4s ease-in-out; }
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                .connector-info-box {
+                    background: #f0f7ff;
+                    border: 1px solid #c6e0f5;
+                    border-radius: 6px;
+                    padding: 10px 15px;
+                    margin-bottom: 16px;
+                    font-size: 13px;
+                    color: #2d5a8e;
                 }
             </style>
 
             <div class="page-transition">
                 <!--
-                    Jenkins Jelly binding: 'instance' is used by f:form and sub-forms to pre-populate fields.
-                    We set it here so that each f:textbox picks up existing connector values automatically.
-                    The descriptor's config.jelly reads ${instance.fieldName} to render pre-filled inputs.
+                    Retrieve the existing connector from storage.
+                    Setting 'instance' as a Jelly variable makes it available to sub-forms
+                    loaded by f:dropdownDescriptorSelector — they check ${instance.fieldName}
+                    to pre-populate their fields.
                 -->
                 <j:set var="instance" value="${it.getConnector(request.getParameter('id'))}" />
+
                 <j:if test="${instance == null}">
-                    <div style="padding:20px; color:#c00;">
-                        Error: Connector with ID "${request.getParameter('id')}" was not found.
-                        <a href=".">Back to Dashboard</a>
+                    <div style="padding:20px; background:#fff3f3; border:1px solid #f5c6c6; border-radius:6px; color:#c00;">
+                        ⚠ Connector with ID <code>${request.getParameter('id')}</code> was not found.
+                        It may have been deleted. <a href=".">← Back to Dashboard</a>
                     </div>
                 </j:if>
+
                 <j:if test="${instance != null}">
                     <h1>Edit Connector</h1>
-                    <p>Modify settings for <strong>${instance.name}</strong> <code>(${instance.id})</code>.</p>
+
+                    <div class="connector-info-box">
+                        ℹ Editing <strong>${instance.descriptor.displayName}</strong>:
+                        <strong>${instance.name}</strong>
+                        <code style="margin-left:6px; background:#e0eeff; padding:2px 6px; border-radius:3px;">${instance.id}</code>
+                    </div>
 
                     <!--
                         action="update" → Stapler routes to doUpdate().
-                        id is passed as a hidden hidden field so doUpdate can look up and replace the connector.
+
+                        IMPORTANT: We do NOT use field="id" here because f:textbox with field=
+                        tries to bind to a descriptor field via introspection. Instead we use
+                        a plain <input> with name="id" to pass the immutable ID in the POST body,
+                        which parseConnectorFromRequest() reads from form.getString("id").
                     -->
                     <f:form action="update" method="post" name="config" id="edit-connector-form">
 
-                        <!-- Hidden field carries the immutable ID so doUpdate knows which connector to replace -->
+                        <!-- Pass the immutable ID as a hidden field -->
                         <input type="hidden" name="id" value="${instance.id}" />
 
-                        <f:entry title="Connector ID" description="Unique string identifier (read-only — cannot be changed).">
+                        <f:entry title="Connector ID" description="Unique identifier — cannot be changed.">
                             <input type="text" value="${instance.id}" readonly="readonly"
-                                   class="jenkins-input" style="background:#f5f5f5; cursor:not-allowed;" />
+                                   class="jenkins-input"
+                                   style="background:#f5f5f5; cursor:not-allowed; color:#666;" />
                         </f:entry>
 
                         <f:entry title="Name" field="name" description="Human-readable display name.">
@@ -57,17 +77,20 @@
                         </f:entry>
 
                         <!--
-                            f:dropdownDescriptorSelector will render the selected descriptor's config.jelly.
-                            Setting 'instance' above means those sub-forms will have access to
-                            ${instance.scmEngine}, ${instance.repoUrl}, etc. for pre-population.
+                            f:dropdownDescriptorSelector pre-selects the correct descriptor
+                            based on instance.class (i.e. ScmConnector vs DbConnector).
+                            The sub-form (ScmConnector/config.jelly) reads ${instance.scmEngine}
+                            etc. from the 'instance' Jelly variable set above, pre-populating fields.
                         -->
                         <f:dropdownDescriptorSelector
                             field="connector"
                             title="Connector Type"
-                            descriptors="${it.connectorDescriptors}" />
+                            descriptors="${it.connectorDescriptors}"
+                            default="${instance.descriptor}" />
 
                         <f:block>
-                            <f:submit value="Update Connector" />
+                            <f:submit value="💾 Update Connector" />
+                            <a href="." style="margin-left:12px;" class="jenkins-button">Cancel</a>
                         </f:block>
                     </f:form>
                 </j:if>

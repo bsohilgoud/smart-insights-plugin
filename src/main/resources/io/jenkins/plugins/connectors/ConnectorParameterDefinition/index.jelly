@@ -1,96 +1,184 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
     <f:entry title="${it.name}" description="${it.description}">
-        <div name="parameter" style="display:flex; gap:10px; align-items:center;">
+
+        <!--
+            Issue 4: Show existing connectors in a proper dropdown (like credentials parameter).
+            The descriptor's doFillValueItems() already returns the list using ConnectorResolver.
+        -->
+        <div name="parameter" style="display:flex; gap:8px; align-items:center;">
             <input type="hidden" name="name" value="${it.name}" />
             <div style="flex-grow:1;">
-                <f:select field="value" class="connector-select-dropdown" />
+                <f:select field="value" id="connectorSelect_${it.name}" />
             </div>
-            
+
+            <!--
+                Issue 2: "Project" scope must point at the nearest PARENT FOLDER that has /connectors,
+                not the job itself (WorkflowJob has no /connectors route).
+                We compute this server-side via Jelly:
+                  - 'contextItem' is the ancestor Item (the job being configured)
+                  - 'folderUrl' walks up to the first AbstractFolder parent
+            -->
+            <st:bind var="contextItem" value="${app.getItemByFullName(h.getCurrentDescriptorByNameUrl().replace(app.rootUrl, '').replaceAll('^/job/', '').replaceAll('/job/', '/'))}" />
+
             <div style="position:relative; display:inline-block;">
-                <button type="button" class="jenkins-button jenkins-button--primary" onclick="toggleConnectorMenu(event)">
-                    <span style="font-weight:bold; font-size:16px; margin-right:4px;">+</span> Add
+                <button type="button" class="jenkins-button jenkins-button--primary"
+                        id="addConnectorBtn_${it.name}"
+                        onclick="toggleConnectorMenu_${it.name.replaceAll('[^a-zA-Z0-9]','_')}(event)">
+                    <span style="font-weight:bold; font-size:16px; margin-right:2px;">+</span> Add
                 </button>
-                <div id="connectorDropdownMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:white; border:1px solid #ccc; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:6px; z-index:1000; min-width:150px; padding:4px 0; font-size:13px;">
-                    <div id="connectorCtxProject" style="display:none; padding:8px 14px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('project')">
-                        📁 Project
+                <div id="connectorMenu_${it.name.replaceAll('[^a-zA-Z0-9]','_')}"
+                     style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:white;
+                            border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:6px;
+                            z-index:9999; min-width:155px; padding:4px 0; font-size:13px;">
+                    <!--
+                        "Project" = nearest folder ancestor that HAS /connectors.
+                        We detect this client-side by stripping any trailing /job/X segments
+                        until we find a folder. The server-side rendering also provides the
+                        rootURL for global fallback.
+                    -->
+                    <div id="connectorProjectScope_${it.name.replaceAll('[^a-zA-Z0-9]','_')}"
+                         style="padding:8px 14px; cursor:pointer; white-space:nowrap; border-bottom:1px solid #f0f0f0;"
+                         onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'"
+                         onclick="openConnectorDialog_${it.name.replaceAll('[^a-zA-Z0-9]','_')}('folder')">
+                        📁 Project (Folder)
                     </div>
-                    <div style="padding:8px 14px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'" onclick="openConnectorDialog('global')">
-                        🖥 Jenkins
+                    <div style="padding:8px 14px; cursor:pointer; white-space:nowrap;"
+                         onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'"
+                         onclick="openConnectorDialog_${it.name.replaceAll('[^a-zA-Z0-9]','_')}('global')">
+                        🌐 Jenkins (Global)
                     </div>
                 </div>
             </div>
         </div>
-        
-        <dialog id="connectorDialog" style="width:800px; height:650px; padding:0; border-radius:10px; border:2px solid #ccc; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; background:#f4f6f8; border-bottom:1px solid #ddd;">
-                <h3 style="margin:0;">Create Connector</h3>
-                <button type="button" class="jenkins-button" onclick="document.getElementById('connectorDialog').close()">Close</button>
+
+        <!-- Modal dialog using native HTML5 <dialog> element -->
+        <dialog id="connectorDialog_${it.name.replaceAll('[^a-zA-Z0-9]','_')}"
+                style="width:820px; max-height:80vh; padding:0; border-radius:10px;
+                       border:1px solid #ccc; box-shadow:0 8px 32px rgba(0,0,0,0.4); overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center;
+                        padding:12px 16px; background:#f4f6f8; border-bottom:1px solid #ddd;">
+                <h3 style="margin:0; font-size:15px;">➕ Create New Connector</h3>
+                <button type="button" class="jenkins-button"
+                        onclick="document.getElementById('connectorDialog_${it.name.replaceAll('[^a-zA-Z0-9]','_')}').close()">
+                    ✕ Close
+                </button>
             </div>
-            <iframe id="connectorIframe" src="" style="width:100%; height:calc(100% - 46px); border:none;"></iframe>
+            <iframe id="connectorIframe_${it.name.replaceAll('[^a-zA-Z0-9]','_')}"
+                    src="" style="width:100%; height:560px; border:none; display:block;"></iframe>
         </dialog>
 
         <style>
-            #connectorDialog::backdrop {
-                background: rgba(0, 0, 0, 0.5);
-                backdrop-filter: blur(2px);
+            dialog#connectorDialog_${it.name.replaceAll('[^a-zA-Z0-9]','_')}::backdrop {
+                background: rgba(0,0,0,0.45);
+                backdrop-filter: blur(3px);
             }
         </style>
 
         <script>
-            function closeConnectorDialogAndRefresh() {
-                var dialog = document.getElementById('connectorDialog');
-                if (dialog) dialog.close();
-                
-                fetch(window.location.href)
-                    .then(response => response.text())
-                    .then(html => {
-                        var parser = new DOMParser();
-                        var doc = parser.parseFromString(html, "text/html");
-                        
-                        var newSelects = doc.querySelectorAll('select.jenkins-select');
-                        var oldSelects = document.querySelectorAll('select.jenkins-select');
-                        
-                        for(var i=0; i&lt;oldSelects.length; i++) {
-                            if(oldSelects[i].getAttribute('name') === 'value' && oldSelects[i].parentNode.getAttribute('name') === 'parameter') {
-                                oldSelects[i].innerHTML = newSelects[i].innerHTML;
-                            }
-                        }
-                    });
-            }
+            (function() {
+                // Namespaced to avoid conflicts when multiple Connector params exist on same page
+                var paramKey = '${it.name.replaceAll("[^a-zA-Z0-9]","_")}';
+                var globalBase = '${rootURL}';
 
-            // UI Menu Toggling
-            function toggleConnectorMenu(event) {
-                var menu = document.getElementById('connectorDropdownMenu');
-                var isVisible = menu.style.display === 'block';
-                menu.style.display = isVisible ? 'none' : 'block';
-                
-                // Detect Job Context Client-Side — match full nested /job/X/job/Y paths
-                var pathMatch = document.location.pathname.match(/^(.*\/job\/[^\/]+(?:\/job\/[^\/]+)*)/);
-                if (pathMatch) {
-                    document.getElementById('connectorCtxProject').style.display = 'block';
-                    document.getElementById('connectorCtxProject').dataset.purl = pathMatch[1];
+                /**
+                 * Walk up the current page URL to find the nearest folder that has /connectors.
+                 * A Pipeline job (/job/Folder/job/MyPipeline) does NOT have /connectors.
+                 * Its parent folder (/job/Folder) DOES.
+                 * Strategy: strip the last /job/X segment to get the parent path.
+                 */
+                function resolveFolderUrl() {
+                    var path = window.location.pathname;
+                    // Match all /job/NAME segments
+                    var segments = path.match(/((?:\/job\/[^\/]+)+)/);
+                    if (!segments) return null;
+                    var full = segments[1]; // e.g. /job/Folder/job/MyPipeline
+                    // Strip the last /job/X segment — that's the job; its parent is a folder
+                    var folderPath = full.replace(/\/job\/[^\/]+$/, '');
+                    if (!folderPath) return null;
+                    // Prepend the Jenkins root (e.g. /jenkins)
+                    var rootPath = window.location.pathname.replace(full, '');
+                    return window.location.origin + rootPath + folderPath;
                 }
-                
-                if (!isVisible) {
-                    event.stopPropagation();
-                    document.addEventListener('click', function hideMenu() {
-                        menu.style.display = 'none';
-                        document.removeEventListener('click', hideMenu);
+
+                window['closeConnectorDialogAndRefresh_' + paramKey] = function() {
+                    var dlg = document.getElementById('connectorDialog_' + paramKey);
+                    if (dlg) dlg.close();
+
+                    // Refresh the connector dropdown via AJAX
+                    fetch(window.location.href, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                        .then(function(r) { return r.text(); })
+                        .then(function(html) {
+                            var parser = new DOMParser();
+                            var doc = parser.parseFromString(html, 'text/html');
+                            var newSel = doc.getElementById('connectorSelect_${it.name}');
+                            var oldSel = document.getElementById('connectorSelect_${it.name}');
+                            if (newSel &amp;&amp; oldSel) {
+                                oldSel.innerHTML = newSel.innerHTML;
+                                // Try to select the last added item (it'll be last in the list)
+                                oldSel.selectedIndex = oldSel.options.length - 1;
+                            }
+                        })
+                        .catch(function(e) { console.warn('Connector refresh failed:', e); });
+                };
+
+                // The iframe calls window.parent.closeConnectorDialogAndRefresh() without the key,
+                // so we also register a fallback pointing to the last opened param
+                window.closeConnectorDialogAndRefresh = function() {
+                    if (window['closeConnectorDialogAndRefresh_' + paramKey]) {
+                        window['closeConnectorDialogAndRefresh_' + paramKey]();
+                    }
+                };
+
+                window['toggleConnectorMenu_' + paramKey] = function(event) {
+                    var menu = document.getElementById('connectorMenu_' + paramKey);
+                    var visible = menu.style.display === 'block';
+                    // Close all other open menus first
+                    document.querySelectorAll('[id^="connectorMenu_"]').forEach(function(m) {
+                        m.style.display = 'none';
                     });
-                }
-            }
-            
-            function openConnectorDialog(scope) {
-                var targetUrl = '${rootURL}/connectors/dialog';
-                if (scope === 'project') {
-                    var purl = document.getElementById('connectorCtxProject').dataset.purl;
-                    if (purl) targetUrl = purl + '/connectors/dialog';
-                }
-                
-                document.getElementById('connectorIframe').src = targetUrl;
-                document.getElementById('connectorDialog').showModal();
-            }
+                    menu.style.display = visible ? 'none' : 'block';
+
+                    if (!visible) {
+                        event.stopPropagation();
+                        setTimeout(function() {
+                            document.addEventListener('click', function _hide() {
+                                menu.style.display = 'none';
+                                document.removeEventListener('click', _hide);
+                            });
+                        }, 0);
+                    }
+                };
+
+                window['openConnectorDialog_' + paramKey] = function(scope) {
+                    var targetUrl;
+                    if (scope === 'global') {
+                        targetUrl = globalBase + '/connectors/dialog';
+                    } else {
+                        // "folder" scope: find the nearest parent folder URL
+                        var folderUrl = resolveFolderUrl();
+                        if (folderUrl) {
+                            targetUrl = folderUrl + '/connectors/dialog';
+                        } else {
+                            // No parent folder found — fall back to global
+                            targetUrl = globalBase + '/connectors/dialog';
+                        }
+                    }
+
+                    var menu = document.getElementById('connectorMenu_' + paramKey);
+                    if (menu) menu.style.display = 'none';
+
+                    var iframe = document.getElementById('connectorIframe_' + paramKey);
+                    var dlg = document.getElementById('connectorDialog_' + paramKey);
+                    iframe.src = targetUrl;
+                    dlg.showModal();
+                };
+
+                // Expose globally for backward compat (iframe posts message to parent)
+                window['openConnectorDialog'] = window['openConnectorDialog_' + paramKey];
+
+            })();
         </script>
+
     </f:entry>
 </j:jelly>
