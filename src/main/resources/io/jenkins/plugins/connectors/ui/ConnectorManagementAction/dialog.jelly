@@ -11,7 +11,7 @@
                     to { opacity: 1; transform: translateY(0); }
                 }
                 body, html { background: transparent !important; }
-                
+
                 /* Hide main Jenkins navigation completely when inside this dialog! */
                 #page-header { display: none !important; }
                 #breadcrumbBar { display: none !important; }
@@ -19,28 +19,52 @@
                 header.jenkins-page-header { display: none !important; }
                 footer { display: none !important; }
                 #side-panel { display: none !important; }
+
+                .field-err { color:#c00; font-size:12px; margin-top:4px; display:none; }
+                .input-error { border-color:#c00 !important; box-shadow:0 0 0 2px rgba(204,0,0,0.15)!important; }
+
+                /* Required-fields banner */
+                #dlg-required-banner {
+                    display: none;
+                    align-items: center;
+                    gap: 10px;
+                    background: #fff8e1;
+                    border: 1px solid #ffe082;
+                    border-radius: 6px;
+                    padding: 10px 16px;
+                    margin-bottom: 16px;
+                    font-size: 13px;
+                    color: #6d4c00;
+                }
+                #dlg-required-banner.visible { display: flex; }
+
+                /* Disabled submit style */
+                #dlg-submit-btn:disabled,
+                #dlg-submit-btn[disabled] {
+                    opacity: 0.45;
+                    cursor: not-allowed;
+                    pointer-events: none;
+                }
             </style>
 
             <div class="page-transition">
                 <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
 
-                <f:form action="create" method="post" name="config" id="create-connector-form"
-                        onsubmit="return dlgConnValidate(this)">
-                    <input type="hidden" name="isInline" value="true" />
+                <!-- Required-fields warning banner -->
+                <div id="dlg-required-banner">
+                    <span style="font-size:18px;">⚠</span>
+                    <span id="dlg-required-banner-msg">Please fill in all required fields before saving.</span>
+                </div>
 
-                    <style>
-                        .field-err { color:#c00; font-size:12px; margin-top:4px; display:none; }
-                        .input-error { border-color:#c00 !important; box-shadow:0 0 0 2px rgba(204,0,0,0.15)!important; }
-                    </style>
+                <f:form action="create" method="post" name="config" id="create-connector-form">
+                    <input type="hidden" name="isInline" value="true" />
 
                     <f:entry title="Connector ID*" field="id"
                              description="Required. Letters, digits, hyphens, underscores, dots only — no spaces.">
                         <f:textbox id="dlg-conn-id" oninput="dlgValidateId(this)" />
                         <div class="field-err" id="dlg-conn-id-error"></div>
                     </f:entry>
-                    <f:entry title="Name" field="name" description="Human-readable display name.">
-                        <f:textbox />
-                    </f:entry>
+
                     <f:entry title="Description" field="description">
                         <f:textbox />
                     </f:entry>
@@ -48,11 +72,17 @@
                     <f:dropdownDescriptorSelector field="connector" title="Connector Category" descriptors="${it.connectorDescriptors}" />
 
                     <f:block>
-                        <f:submit value="✔ Create Connector" />
+                        <button type="submit" id="dlg-submit-btn"
+                                class="jenkins-button jenkins-button--primary"
+                                disabled="disabled">
+                            ✔ Create Connector
+                        </button>
                     </f:block>
                 </f:form>
 
                 <script>
+                    var dlgSubmitBtn = document.getElementById('dlg-submit-btn');
+
                     function dlgValidateId(input) {
                         var val = input ? input.value : '';
                         var errEl = document.getElementById('dlg-conn-id-error');
@@ -66,12 +96,36 @@
                         }
                         if (errEl) { errEl.textContent = msg; errEl.style.display = msg ? 'block' : 'none'; }
                         if (input) { input.classList.toggle('input-error', !!msg); }
+                        // Enable/disable submit button
+                        if (dlgSubmitBtn) {
+                            var valid = !msg &amp;&amp; val.trim().length > 0;
+                            dlgSubmitBtn.disabled = !valid;
+                        }
                         return !msg;
                     }
-                    function dlgConnValidate() {
-                        var el = document.getElementById('dlg-conn-id');
-                        return el ? dlgValidateId(el) : true;
+
+                    function dlgShowBanner(msg) {
+                        var banner = document.getElementById('dlg-required-banner');
+                        var bannerMsg = document.getElementById('dlg-required-banner-msg');
+                        if (bannerMsg) bannerMsg.textContent = msg;
+                        if (banner) banner.classList.add('visible');
+                        setTimeout(function() { if (banner) banner.classList.remove('visible'); }, 4000);
                     }
+
+                    // Intercept form submit
+                    (function() {
+                        var form = document.getElementById('create-connector-form');
+                        if (form) {
+                            form.addEventListener('submit', function(e) {
+                                var el = document.getElementById('dlg-conn-id');
+                                if (!el || !dlgValidateId(el)) {
+                                    e.preventDefault();
+                                    dlgShowBanner('⚠ Please fill in all required fields before saving. Connector ID is required.');
+                                    return false;
+                                }
+                            });
+                        }
+                    })();
                 </script>
             </div>
         </l:main-panel>

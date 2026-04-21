@@ -9,30 +9,55 @@
         </l:side-panel>
         <l:main-panel>
             <style>
-                .connector-list {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 20px;
-                }
-                .connector-list th, .connector-list td {
-                    padding: 12px 15px;
-                    border-bottom: 1px solid #ddd;
-                    text-align: left;
-                }
-                .connector-list th {
-                    background-color: #f4f6f8;
-                    font-weight: 600;
-                    color: #333;
-                }
-                .connector-list tr:hover {
-                    background-color: #fbfbfb;
-                }
-                .btn-delete {
-                    color: #d32f2f;
+                /* Icon-action buttons */
+                .action-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    border: 1px solid transparent;
                     cursor: pointer;
+                    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
                     background: none;
-                    border: none;
-                    font-weight: bold;
+                    text-decoration: none;
+                    vertical-align: middle;
+                    padding: 0;
+                }
+                .action-btn svg {
+                    width: 16px;
+                    height: 16px;
+                    display: block;
+                }
+                .action-btn.edit-btn {
+                    color: #1565c0;
+                    border-color: #bbdefb;
+                }
+                .action-btn.edit-btn:hover {
+                    background: #e3f2fd;
+                    border-color: #1565c0;
+                    box-shadow: 0 1px 4px rgba(21,101,192,0.18);
+                }
+                .action-btn.delete-btn {
+                    color: #c62828;
+                    border-color: #ffcdd2;
+                }
+                .action-btn.delete-btn:hover {
+                    background: #ffebee;
+                    border-color: #c62828;
+                    box-shadow: 0 1px 4px rgba(198,40,40,0.18);
+                }
+                .action-cell {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                /* Inline delete form must not add extra margin */
+                .action-cell form {
+                    margin: 0;
+                    padding: 0;
+                    display: inline-flex;
                 }
                 .toast-notification {
                     visibility: hidden;
@@ -61,7 +86,7 @@
                     to {top: 0; opacity: 0;}
                 }
             </style>
-            
+
             <div id="toast" class="toast-notification">Action completed successfully</div>
 
             <script>
@@ -71,7 +96,7 @@
                     toast.className = "toast-notification show";
                     setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
                 }
-                
+
                 // Show toast if URL param indicates success
                 if (window.location.search.indexOf('created=true') > -1) {
                     showToast('✓ Connector created successfully!');
@@ -85,7 +110,6 @@
             <h1>Connectors Dashboard</h1>
             <p>Manage all external connections scoped to your folders and pipelines.</p>
 
-            <!-- Issue 3: Show where connectors are stored so users don't get confused -->
             <div style="display:inline-flex; align-items:center; gap:8px; background:#f0f7ff; border:1px solid #c6e0f5;
                         border-radius:6px; padding:8px 14px; margin-bottom:16px; font-size:13px; color:#2d5a8e;">
                 <span style="font-size:16px;">💾</span>
@@ -97,38 +121,61 @@
                 </span>
             </div>
 
-            <table class="connector-list">
+            <!--
+                jenkins-table is the native Jenkins modern table class — picks up
+                the same rounded, bordered, zebra-stripe styling used in Credentials,
+                Manage Plugins, etc.
+            -->
+            <table class="jenkins-table">
                 <thead>
                     <tr>
-                        <th>Icon</th>
+                        <th class="jenkins-table__cell--tight"></th>
                         <th>ID</th>
-                        <th>Name</th>
                         <th>Description</th>
                         <th>Type</th>
-                        <th>Actions</th>
+                        <th class="jenkins-table__cell--tight">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <j:forEach var="c" items="${it.connectors}">
                         <tr>
-                            <td><l:icon class="${c.descriptor.iconClassName} icon-md" /></td>
-                            <td>${c.id}</td>
-                            <td><strong>${c.name}</strong></td>
+                            <td class="jenkins-table__cell--tight">
+                                <l:icon class="${c.descriptor.iconClassName} icon-sm" />
+                            </td>
+                            <td><code>${c.id}</code></td>
                             <td>${c.description}</td>
                             <td>${c.descriptor.displayName}</td>
                             <td>
-                                <!-- Edit natively navigates to edit page -->
-                                <a href="edit?id=${c.id}" class="jenkins-button" style="margin-right:8px;">✎ Edit</a>
-                                <!-- Stapler maps action="delete" → doDelete -->
-                                <f:form action="delete?id=${c.id}" method="post" style="display:inline;">
-                                    <f:submit value="✕ Delete" class="btn-delete"/>
-                                </f:form>
+                                <div class="action-cell">
+                                    <!-- Edit: pencil SVG icon button -->
+                                    <a href="edit?id=${c.id}" class="action-btn edit-btn" title="Edit connector">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                    </a>
+                                    <!-- Delete: trash SVG icon button -->
+                                    <f:form action="delete?id=${c.id}" method="post" style="display:inline-flex; margin:0;">
+                                        <button type="submit" class="action-btn delete-btn" title="Delete connector"
+                                                onclick="return confirm('Delete connector ${c.id}? This cannot be undone.')">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                <path d="M10 11v6" />
+                                                <path d="M14 11v6" />
+                                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                            </svg>
+                                        </button>
+                                    </f:form>
+                                </div>
                             </td>
                         </tr>
                     </j:forEach>
                     <j:if test="${empty it.connectors}">
                         <tr>
-                            <td colspan="6" style="text-align:center; padding: 30px;">
+                            <td colspan="5" style="text-align:center; padding: 30px;">
                                 <div style="color:#666;">No connectors found in this scope.</div>
                                 <a href="new" class="jenkins-button jenkins-button--primary" style="margin-top:10px;">Create your first Connector</a>
                             </td>

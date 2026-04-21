@@ -42,7 +42,6 @@
 
                     <div class="info-badge">
                         💾 Editing <strong>${instance.descriptor.displayName}</strong>:
-                        <strong>${instance.name}</strong>
                         <code style="background:#e0eeff; padding:2px 6px; border-radius:3px; margin-left:4px;">${instance.id}</code>
                     </div>
 
@@ -63,9 +62,6 @@
                                    style="background:#f4f4f4; cursor:not-allowed; color:#555;" />
                         </f:entry>
 
-                        <f:entry title="Name" field="name" description="Human-readable display name.">
-                            <f:textbox value="${instance.name}" />
-                        </f:entry>
 
                         <f:entry title="Description" field="description">
                             <f:textbox value="${instance.description}" />
@@ -97,7 +93,7 @@
                             var targetTypeName = '${instance.descriptor.displayName}';
 
                             function selectCorrectType() {
-                                // The descriptor selector renders a <select> with one option per type
+                                // The descriptor selector renders a &lt;select> with one option per type
                                 var selects = document.querySelectorAll('select');
                                 for (var i = 0; i &lt; selects.length; i++) {
                                     var sel = selects[i];

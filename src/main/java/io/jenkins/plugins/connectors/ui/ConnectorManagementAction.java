@@ -33,7 +33,7 @@ public class ConnectorManagementAction implements Action {
     @Override
     public String getIconFileName() {
         if (hasPermission(ConnectorPermissions.VIEW)) {
-            return "symbol-extension";
+            return "/plugin/smart-insights-plugin/images/connector.svg";
         }
         return null;
     }
@@ -69,7 +69,8 @@ public class ConnectorManagementAction implements Action {
 
     public List<Connector> getConnectors() {
         if (context instanceof AbstractFolder) {
-            FolderConnectorProperty prop = ((AbstractFolder<?>) context).getProperties().get(FolderConnectorProperty.class);
+            FolderConnectorProperty prop = ((AbstractFolder<?>) context).getProperties()
+                    .get(FolderConnectorProperty.class);
             return prop != null ? prop.getConnectors() : new ArrayList<>();
         }
         return GlobalConnectorStorage.get().getConnectors();
@@ -83,7 +84,9 @@ public class ConnectorManagementAction implements Action {
         return ExtensionList.lookup(Connector.ConnectorDescriptor.class);
     }
 
-    /** Used by Jelly to determine storage scope without needing instanceof in EL. */
+    /**
+     * Used by Jelly to determine storage scope without needing instanceof in EL.
+     */
     public boolean isFolder() {
         return context instanceof AbstractFolder;
     }
@@ -96,7 +99,8 @@ public class ConnectorManagementAction implements Action {
         return "Global (JENKINS_HOME/connectors.xml)";
     }
 
-    private Connector parseConnectorFromRequest(StaplerRequest req, net.sf.json.JSONObject form) throws Descriptor.FormException {
+    private Connector parseConnectorFromRequest(StaplerRequest req, net.sf.json.JSONObject form)
+            throws Descriptor.FormException {
         net.sf.json.JSONObject connectorPayload = form.has("connector") ? form.getJSONObject("connector") : form;
         String type = null;
 
@@ -136,14 +140,19 @@ public class ConnectorManagementAction implements Action {
             throw new IllegalArgumentException("Connector ID is mandatory and cannot be empty.");
         }
         if (connectorId.contains(" ") || !connectorId.matches("[\\w\\-\\.]+")) {
-            throw new IllegalArgumentException("Connector ID must only contain letters, digits, hyphens, underscores, or dots — no spaces.");
+            throw new IllegalArgumentException(
+                    "Connector ID must only contain letters, digits, hyphens, underscores, or dots — no spaces.");
         }
 
-        if (form.has("id")) connectorPayload.put("id", form.getString("id"));
-        if (form.has("name")) connectorPayload.put("name", form.getString("name"));
-        if (form.has("description")) connectorPayload.put("description", form.getString("description"));
+        if (form.has("id"))
+            connectorPayload.put("id", form.getString("id"));
+        if (form.has("name"))
+            connectorPayload.put("name", form.getString("name"));
+        if (form.has("description"))
+            connectorPayload.put("description", form.getString("description"));
 
-        // Fix for Jenkins Table-to-Div Migration bug: flatten JSONArrays back to single String
+        // Fix for Jenkins Table-to-Div Migration bug: flatten JSONArrays back to single
+        // String
         for (Object keyObj : new ArrayList<Object>(connectorPayload.keySet())) {
             String k = String.valueOf(keyObj);
             Object v = connectorPayload.get(k);
@@ -159,7 +168,8 @@ public class ConnectorManagementAction implements Action {
     }
 
     @org.kohsuke.stapler.verb.POST
-    public void doCreate(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException, Descriptor.FormException {
+    public void doCreate(StaplerRequest req, StaplerResponse rsp)
+            throws ServletException, IOException, Descriptor.FormException {
         checkPermission(ConnectorPermissions.CREATE);
 
         net.sf.json.JSONObject form = req.getSubmittedForm();
@@ -182,7 +192,8 @@ public class ConnectorManagementAction implements Action {
         boolean isInline = form.has("isInline") && form.getBoolean("isInline");
         if (isInline) {
             rsp.setContentType("text/html");
-            rsp.getWriter().println("<html><body><script>window.parent.closeConnectorDialogAndRefresh();</script></body></html>");
+            rsp.getWriter().println(
+                    "<html><body><script>window.parent.closeConnectorDialogAndRefresh();</script></body></html>");
         } else {
             rsp.sendRedirect2("?created=true");
         }
@@ -190,7 +201,8 @@ public class ConnectorManagementAction implements Action {
 
     // Stapler maps form action="update" → doUpdate
     @org.kohsuke.stapler.verb.POST
-    public void doUpdate(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException, Descriptor.FormException {
+    public void doUpdate(StaplerRequest req, StaplerResponse rsp)
+            throws ServletException, IOException, Descriptor.FormException {
         checkPermission(ConnectorPermissions.UPDATE);
 
         net.sf.json.JSONObject form = req.getSubmittedForm();
@@ -217,7 +229,8 @@ public class ConnectorManagementAction implements Action {
         checkPermission(ConnectorPermissions.DELETE);
 
         if (context instanceof AbstractFolder) {
-            FolderConnectorProperty prop = ((AbstractFolder<?>) context).getProperties().get(FolderConnectorProperty.class);
+            FolderConnectorProperty prop = ((AbstractFolder<?>) context).getProperties()
+                    .get(FolderConnectorProperty.class);
             if (prop != null) {
                 prop.removeConnector(id);
             }

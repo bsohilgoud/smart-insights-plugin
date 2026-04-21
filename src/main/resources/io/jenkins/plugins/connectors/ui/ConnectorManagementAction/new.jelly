@@ -15,26 +15,45 @@
                     from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-                .kind-selector {
-                    margin-bottom: 20px;
-                    padding: 15px;
-                    background: #f4f6f8;
-                    border-radius: 8px;
-                    border: 1px solid #e0e0e0;
+                .field-err { color: #c00; font-size: 12px; margin-top: 4px; display: none; }
+                input.input-error, .jenkins-input.input-error { border-color: #c00 !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
+
+                /* Required-fields banner */
+                #conn-required-banner {
+                    display: none;
+                    align-items: center;
+                    gap: 10px;
+                    background: #fff8e1;
+                    border: 1px solid #ffe082;
+                    border-radius: 6px;
+                    padding: 10px 16px;
+                    margin-bottom: 16px;
+                    font-size: 13px;
+                    color: #6d4c00;
+                }
+                #conn-required-banner.visible { display: flex; }
+
+                /* Disabled submit style */
+                #conn-submit-btn:disabled,
+                #conn-submit-btn[disabled] {
+                    opacity: 0.45;
+                    cursor: not-allowed;
+                    pointer-events: none;
                 }
             </style>
 
             <div class="page-transition">
                 <h1>Create New Connector</h1>
-                <p>Select a connector kind below to dynamically load its specific connection parameters.</p>
+                <p>Fill in the required fields below to create a new connector.</p>
 
-                <style>
-                    .field-err { color: #c00; font-size: 12px; margin-top: 4px; display: none; }
-                    input.input-error, .jenkins-input.input-error { border-color: #c00 !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
-                </style>
+                <!-- Required-fields warning banner (shown instead of calling backend) -->
+                <div id="conn-required-banner">
+                    <span style="font-size:18px;">⚠</span>
+                    <span id="conn-required-banner-msg">Please fill in all required fields before saving.</span>
+                </div>
 
                 <f:form action="create" method="post" name="config" id="create-connector-form"
-                        onsubmit="return connCreateValidate(this)">
+                        onsubmit="return connCreateValidate(event)">
 
                     <f:entry title="Connector ID*" field="id"
                              description="Required. Alphanumeric, hyphens, underscores only. No spaces. e.g. my-github-connector">
@@ -42,9 +61,7 @@
                                    oninput="connValidateId(this)" />
                         <div class="field-err" id="conn-id-error"></div>
                     </f:entry>
-                    <f:entry title="Name" field="name" description="Human-readable display name.">
-                        <f:textbox />
-                    </f:entry>
+
                     <f:entry title="Description" field="description">
                         <f:textbox />
                     </f:entry>
@@ -53,12 +70,22 @@
                                                   descriptors="${it.connectorDescriptors}" />
 
                     <f:block>
-                        <f:submit value="✔ Create Connector" />
+                        <!--
+                            The submit button is kept as a regular button and we handle validation
+                            in JS — disabled state is managed dynamically.
+                        -->
+                        <button type="submit" id="conn-submit-btn"
+                                class="jenkins-button jenkins-button--primary"
+                                disabled="disabled">
+                            ✔ Create Connector
+                        </button>
                         <a href="." class="jenkins-button" style="margin-left:10px;">Cancel</a>
                     </f:block>
                 </f:form>
 
                 <script>
+                    var connSubmitBtn = document.getElementById('conn-submit-btn');
+
                     function connValidateId(input) {
                         var val = input ? input.value : '';
                         var errEl = document.getElementById('conn-id-error');
@@ -77,14 +104,48 @@
                         if (input) {
                             input.classList.toggle('input-error', !!msg);
                         }
+                        // Enable/disable submit button
+                        if (connSubmitBtn) {
+                            var valid = !msg &amp;&amp; val.trim().length > 0;
+                            connSubmitBtn.disabled = !valid;
+                        }
                         return !msg;
                     }
 
-                    function connCreateValidate(form) {
+                    function connShowBanner(msg) {
+                        var banner = document.getElementById('conn-required-banner');
+                        var bannerMsg = document.getElementById('conn-required-banner-msg');
+                        if (bannerMsg) bannerMsg.textContent = msg;
+                        if (banner) banner.classList.add('visible');
+                        // Auto-hide after 4s
+                        setTimeout(function() { if (banner) banner.classList.remove('visible'); }, 4000);
+                    }
+
+                    function connCreateValidate(e) {
                         var idInput = document.getElementById('conn-id-input');
                         if (!idInput) return true; // let server validate
-                        return connValidateId(idInput);
+
+                        var idOk = connValidateId(idInput);
+                        if (!idOk) {
+                            if (e) e.preventDefault();
+                            connShowBanner('⚠ Please fill in all required fields before saving. Connector ID is required.');
+                            return false;
+                        }
+                        return true;
                     }
+
+                    // Wire the form's submit event (onsubmit attr handles it too, this is a safety net)
+                    (function() {
+                        var form = document.getElementById('create-connector-form');
+                        if (form) {
+                            form.addEventListener('submit', function(e) {
+                                if (!connCreateValidate(e)) {
+                                    e.preventDefault();
+                                    return false;
+                                }
+                            });
+                        }
+                    })();
                 </script>
             </div>
         </l:main-panel>

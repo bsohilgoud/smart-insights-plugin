@@ -11,7 +11,7 @@ public class ConnectorRootAction extends ManagementLink implements StaplerProxy 
 
     @Override
     public String getIconFileName() {
-        return "symbol-extension";
+        return "/plugin/smart-insights-plugin/images/connector.svg";
     }
 
     @Override
